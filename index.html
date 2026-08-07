@@ -28,7 +28,7 @@
       .hud {
         position: absolute;
         left: 6px;
-        top: 4px;
+        top: 8px;
         width: 256px;
         height: 54px;
         filter: drop-shadow(3px 4px 0 rgba(10,9,15,.52));
@@ -130,8 +130,11 @@
       }
       .number {
         position: absolute;
-        z-index: 5;
-        inset: 0;
+        z-index: 8;
+        left: 9px;
+        top: 17px;
+        width: 234px;
+        height: 20px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -152,9 +155,12 @@
 
       .legend {
         position: absolute;
-        right: 8px;
-        top: 1px;
-        z-index: 9;
+        right: 7px;
+        top: 0;
+        z-index: 11;
+        height: 9px;
+        line-height: 9px;
+        white-space: nowrap;
         color: #d9b85f;
         font: 400 7px/1 "Press Start 2P", monospace;
         letter-spacing: 0;
@@ -163,7 +169,7 @@
 
       .chips {
         position: absolute;
-        z-index: 4;
+        z-index: 7;
         left: var(--chip-x,9px);
         top: 25px;
         width: 1px;
@@ -207,7 +213,7 @@
         position: absolute;
         right: 1px;
         top: 0;
-        z-index: 8;
+        z-index: 10;
         color: #fff56d;
         font: 400 8px/1 "Press Start 2P", monospace;
         letter-spacing: -.08em;
@@ -219,7 +225,7 @@
       }
       .burst .max { animation: maxPop .52s steps(4); }
 
-      .pixel { position: absolute; z-index: 7; right: 5px; top: 27px; width: 6px; height: 6px; opacity: 0; background: var(--c,#fff36f); border: 1px solid #17151e; }
+      .pixel { position: absolute; z-index: 9; right: 5px; top: 27px; width: 6px; height: 6px; opacity: 0; background: var(--c,#fff36f); border: 1px solid #17151e; }
       .burst .pixel { animation: pixelBurst .54s steps(5); }
       .p1 { --x:-28px; --y:-27px; }
       .p2 { --x:13px; --y:-23px; --c:#ff654b; animation-delay:20ms !important; }
@@ -299,8 +305,9 @@
       <div class="hud">
         <div class="legend" id="cache-hit">HIT --.----%</div>
         <div class="bar-shell">
-          <div class="bar-track"><div class="bar-fill" id="bar"></div><div class="number" id="total">—</div></div>
+          <div class="bar-track"><div class="bar-fill" id="bar"></div></div>
         </div>
+        <div class="number" id="total">—</div>
         <div class="chips" aria-hidden="true">
           <i class="chip c1"></i><i class="chip c2"></i><i class="chip c3"></i><i class="chip c4"></i><i class="chip c5"></i>
           <i class="chip c6"></i><i class="chip c7"></i><i class="chip c8"></i>
