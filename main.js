@@ -173,7 +173,7 @@ async function monitor() {
 function createOverlay() {
   const { workArea } = screen.getPrimaryDisplay()
   const width = 268
-  const height = 72
+  const height = 76
 
   overlay = new BrowserWindow({
     width,

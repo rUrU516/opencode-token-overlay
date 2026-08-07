@@ -3,6 +3,7 @@ const totalElement = document.querySelector("#total")
 const barElement = document.querySelector("#bar")
 const cacheHitElement = document.querySelector("#cache-hit")
 const hudElement = document.querySelector(".hud")
+const chipElements = [...document.querySelectorAll(".chip")]
 
 // UI 每秒最多推进 10K Token。真实目标值始终完整保留，不会丢失用量。
 const MAX_TOKENS_PER_SECOND = 10_000
@@ -14,6 +15,22 @@ let frameID
 let previousFrame
 let previousBar
 let burstTimer
+
+const chipColors = ["#8f4939", "#a95b3e", "#d56f40", "#ed9847", "#f0c65a", "#f4dc73"]
+
+function randomizeChip(chip) {
+  const direction = Math.random() < .5 ? -1 : 1
+  chip.style.setProperty("--x", `${Math.round(-26 + Math.random() * 54)}px`)
+  chip.style.setProperty("--y", `${direction * Math.round(20 + Math.random() * 13)}px`)
+  chip.style.setProperty("--size", `${2 + Math.floor(Math.random() * 4)}px`)
+  chip.style.setProperty("--spin", `${[90,180,270][Math.floor(Math.random() * 3)]}deg`)
+  chip.style.setProperty("--chip-color", chipColors[Math.floor(Math.random() * chipColors.length)])
+}
+
+chipElements.forEach((chip) => {
+  randomizeChip(chip)
+  chip.addEventListener("animationiteration", () => randomizeChip(chip))
+})
 
 const total = (value) => value.input + value.cache + value.output
 

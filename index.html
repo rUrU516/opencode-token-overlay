@@ -28,7 +28,7 @@
       .hud {
         position: absolute;
         left: 6px;
-        top: 8px;
+        top: 6px;
         width: 256px;
         height: 54px;
         filter: drop-shadow(3px 4px 0 rgba(10,9,15,.52));
@@ -37,7 +37,7 @@
         position: absolute;
         z-index: 5;
         left: 2px;
-        top: 10px;
+        top: 14px;
         width: 248px;
         height: 34px;
         padding: 4px;
@@ -132,7 +132,7 @@
         position: absolute;
         z-index: 8;
         left: 9px;
-        top: 17px;
+        top: 21px;
         width: 234px;
         height: 20px;
         display: flex;
@@ -155,11 +155,11 @@
 
       .legend {
         position: absolute;
-        right: 7px;
+        right: 14px;
         top: 0;
         z-index: 11;
-        height: 9px;
-        line-height: 9px;
+        padding-top: 1px;
+        line-height: 12px;
         white-space: nowrap;
         color: #d9b85f;
         font: 400 7px/1 "Press Start 2P", monospace;
@@ -171,7 +171,7 @@
         position: absolute;
         z-index: 7;
         left: var(--chip-x,9px);
-        top: 25px;
+        top: 29px;
         width: 1px;
         height: 1px;
         pointer-events: none;
@@ -286,7 +286,7 @@
         0% { opacity:0; transform:translate(0,0) rotate(0); }
         18% { opacity:1; }
         72% { opacity:1; }
-        100% { opacity:0; transform:translate(var(--x,-12px),var(--y,-13px)) rotate(180deg); }
+        100% { opacity:0; transform:translate(var(--x,-12px),var(--y,-13px)) rotate(var(--spin,180deg)); }
       }
       @keyframes chipSlash {
         0%,15% { opacity:0; transform:translate(0,0) rotate(-28deg) scaleX(.4); }
