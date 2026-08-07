@@ -1,13 +1,17 @@
 const overlay = document.querySelector(".overlay")
 const totalElement = document.querySelector("#total")
+const barElement = document.querySelector("#bar")
 
 // UI 每秒最多推进 50K Token。真实目标值始终完整保留，不会丢失用量。
 const MAX_TOKENS_PER_SECOND = 50_000
+const TOKENS_PER_BAR = 250_000
 let shown
 let target
 let connectionStatus = "connecting"
 let frameID
 let previousFrame
+let previousBar
+let burstTimer
 
 const compact = (value) => {
   if (value >= 1_000_000_000) return `${(value / 1_000_000_000).toFixed(2)}B`
@@ -19,7 +23,21 @@ const compact = (value) => {
 const total = (value) => value.input + value.cache + value.output
 
 function paint(value) {
-  totalElement.textContent = Math.round(total(value)).toLocaleString()
+  const valueTotal = total(value)
+  totalElement.textContent = Math.round(valueTotal).toLocaleString()
+  const bar = Math.floor(valueTotal / TOKENS_PER_BAR)
+  const progress = (valueTotal % TOKENS_PER_BAR) / TOKENS_PER_BAR
+  barElement.style.width = `${Math.max(1, progress * 100)}%`
+  if (previousBar !== undefined && bar > previousBar) triggerBurst()
+  previousBar = bar
+}
+
+function triggerBurst() {
+  overlay.classList.remove("burst")
+  void overlay.offsetWidth
+  overlay.classList.add("burst")
+  clearTimeout(burstTimer)
+  burstTimer = setTimeout(() => overlay.classList.remove("burst"), 580)
 }
 
 function setState(consuming) {
