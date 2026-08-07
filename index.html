@@ -35,6 +35,7 @@
       }
       .bar-shell {
         position: absolute;
+        z-index: 5;
         left: 2px;
         top: 10px;
         width: 248px;
@@ -87,6 +88,18 @@
         position: absolute;
         inset: 0;
         background: repeating-linear-gradient(90deg,transparent 0 13px,#171720 13px 16px);
+      }
+      .bar-fill::before {
+        content: "";
+        position: absolute;
+        z-index: 2;
+        right: -3px;
+        top: 6px;
+        width: 7px;
+        height: 7px;
+        opacity: 0;
+        background: #fff1a0;
+        clip-path: polygon(43% 0,57% 0,57% 43%,100% 43%,100% 57%,57% 57%,57% 100%,43% 100%,43% 57%,0 57%,0 43%,43% 43%);
       }
       .active .bar-fill { filter: brightness(1.18) saturate(1.2); }
       .overlay:not(.active):not(.disconnected):not(.burst) .bar-shell { animation: idleShellBreath 3.2s steps(4) infinite; }
@@ -150,23 +163,23 @@
 
       .chips {
         position: absolute;
-        z-index: 12;
+        z-index: 4;
         left: var(--chip-x,9px);
         top: 25px;
         width: 1px;
         height: 1px;
         pointer-events: none;
       }
-      .chips::before {
+      .chips::after {
         content: "";
         position: absolute;
-        left: -3px;
-        top: -3px;
-        width: 7px;
-        height: 7px;
+        left: -4px;
+        top: -1px;
+        width: 9px;
+        height: 3px;
         opacity: 0;
-        background: #fff1a0;
-        clip-path: polygon(43% 0,57% 0,57% 43%,100% 43%,100% 57%,57% 57%,57% 100%,43% 100%,43% 57%,0 57%,0 43%,43% 43%);
+        background: #ffd760;
+        box-shadow: 5px 5px #a9533c,-4px 9px #f08a45;
       }
       .chip {
         position: absolute;
@@ -178,12 +191,17 @@
         background: var(--chip-color,#d58a46);
         box-shadow: inset -1px -1px #6e3b35;
       }
-      .active:not(.burst) .chips::before { animation: chipImpact .54s steps(3) infinite; }
-      .active:not(.burst) .chip { animation: chipSpit .72s steps(5) infinite; }
-      .chip.c2 { --x:12px; --y:-10px; --size:3px; --chip-color:#f0c65a; animation-delay:-.18s !important; }
-      .chip.c3 { --x:16px; --y:5px; --size:4px; --chip-color:#a95b3e; animation-delay:-.36s !important; }
-      .chip.c4 { --x:-9px; --y:11px; --size:3px; --chip-color:#df8145; animation-delay:-.54s !important; }
-      .chip.c5 { --x:7px; --y:14px; --size:3px; --chip-color:#ffe17a; animation-delay:-.27s !important; }
+      .active:not(.burst) .bar-fill::before { animation: chipImpact .46s steps(3) infinite; }
+      .active:not(.burst) .chips::after { animation: chipSlash .58s steps(4) infinite; }
+      .active:not(.burst) .chip { animation: chipSpit .64s steps(5) infinite; }
+      .chip.c1 { --x:-17px; --y:-25px; --size:5px; }
+      .chip.c2 { --x:15px; --y:-28px; --size:4px; --chip-color:#f0c65a; animation-delay:-.08s !important; }
+      .chip.c3 { --x:21px; --y:25px; --size:5px; --chip-color:#a95b3e; animation-delay:-.16s !important; }
+      .chip.c4 { --x:-14px; --y:29px; --size:4px; --chip-color:#df8145; animation-delay:-.24s !important; }
+      .chip.c5 { --x:9px; --y:-22px; --size:3px; --chip-color:#ffe17a; animation-delay:-.32s !important; }
+      .chip.c6 { --x:-23px; --y:20px; --size:3px; --chip-color:#8f4939; animation-delay:-.4s !important; }
+      .chip.c7 { --x:26px; --y:-18px; --size:3px; --chip-color:#ffb44e; animation-delay:-.48s !important; }
+      .chip.c8 { --x:19px; --y:31px; --size:4px; --chip-color:#f4dc73; animation-delay:-.56s !important; }
 
       .max {
         position: absolute;
@@ -201,7 +219,7 @@
       }
       .burst .max { animation: maxPop .52s steps(4); }
 
-      .pixel { position: absolute; right: 5px; top: 27px; width: 6px; height: 6px; opacity: 0; background: var(--c,#fff36f); border: 1px solid #17151e; }
+      .pixel { position: absolute; z-index: 7; right: 5px; top: 27px; width: 6px; height: 6px; opacity: 0; background: var(--c,#fff36f); border: 1px solid #17151e; }
       .burst .pixel { animation: pixelBurst .54s steps(5); }
       .p1 { --x:-28px; --y:-27px; }
       .p2 { --x:13px; --y:-23px; --c:#ff654b; animation-delay:20ms !important; }
@@ -264,6 +282,11 @@
         72% { opacity:1; }
         100% { opacity:0; transform:translate(var(--x,-12px),var(--y,-13px)) rotate(180deg); }
       }
+      @keyframes chipSlash {
+        0%,15% { opacity:0; transform:translate(0,0) rotate(-28deg) scaleX(.4); }
+        16%,65% { opacity:1; }
+        100% { opacity:0; transform:translate(-18px,-21px) rotate(-28deg) scaleX(1.3); }
+      }
       @keyframes maxPop { 0% { opacity:0; transform:rotate(7deg) scale(.4); } 20%,75% { opacity:1; transform:rotate(-5deg) scale(1.2); } 100% { opacity:0; transform:rotate(5deg) scale(1.45); } }
       @keyframes pixelBurst { 0% { opacity:1; transform:translate(0,0) rotate(0); } 75% { opacity:1; } 100% { opacity:0; transform:translate(var(--x),var(--y)) rotate(180deg); } }
       @keyframes overloadShake { 0% { transform:translate(-2px,1px); } 100% { transform:translate(2px,-1px); } }
@@ -280,6 +303,7 @@
         </div>
         <div class="chips" aria-hidden="true">
           <i class="chip c1"></i><i class="chip c2"></i><i class="chip c3"></i><i class="chip c4"></i><i class="chip c5"></i>
+          <i class="chip c6"></i><i class="chip c7"></i><i class="chip c8"></i>
         </div>
         <div class="max">MAX!!</div>
         <i class="pixel p1"></i><i class="pixel p2"></i><i class="pixel p3"></i>
