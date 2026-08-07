@@ -139,17 +139,51 @@
 
       .legend {
         position: absolute;
-        left: 8px;
+        right: 8px;
         top: 1px;
         z-index: 9;
-        width: 234px;
-        display: flex;
-        justify-content: space-between;
         color: #d9b85f;
-        font: 400 6px/1 "Press Start 2P", monospace;
+        font: 400 7px/1 "Press Start 2P", monospace;
         letter-spacing: 0;
         text-shadow: 1px 1px 0 #17151e;
       }
+
+      .chips {
+        position: absolute;
+        z-index: 12;
+        left: var(--chip-x,9px);
+        top: 25px;
+        width: 1px;
+        height: 1px;
+        pointer-events: none;
+      }
+      .chips::before {
+        content: "";
+        position: absolute;
+        left: -3px;
+        top: -3px;
+        width: 7px;
+        height: 7px;
+        opacity: 0;
+        background: #fff1a0;
+        clip-path: polygon(43% 0,57% 0,57% 43%,100% 43%,100% 57%,57% 57%,57% 100%,43% 100%,43% 57%,0 57%,0 43%,43% 43%);
+      }
+      .chip {
+        position: absolute;
+        left: -2px;
+        top: -2px;
+        width: var(--size,4px);
+        height: var(--size,4px);
+        opacity: 0;
+        background: var(--chip-color,#d58a46);
+        box-shadow: inset -1px -1px #6e3b35;
+      }
+      .active:not(.burst) .chips::before { animation: chipImpact .54s steps(3) infinite; }
+      .active:not(.burst) .chip { animation: chipSpit .72s steps(5) infinite; }
+      .chip.c2 { --x:12px; --y:-10px; --size:3px; --chip-color:#f0c65a; animation-delay:-.18s !important; }
+      .chip.c3 { --x:16px; --y:5px; --size:4px; --chip-color:#a95b3e; animation-delay:-.36s !important; }
+      .chip.c4 { --x:-9px; --y:11px; --size:3px; --chip-color:#df8145; animation-delay:-.54s !important; }
+      .chip.c5 { --x:7px; --y:14px; --size:3px; --chip-color:#ffe17a; animation-delay:-.27s !important; }
 
       .max {
         position: absolute;
@@ -219,6 +253,17 @@
         50% { color:#fffbd8; text-shadow:2px 2px 0 #923f3d,0 0 6px rgba(255,231,91,.55); }
       }
       @keyframes numberGlitch { to { transform: translateX(1px); } }
+      @keyframes chipImpact {
+        0%,20% { opacity:0; transform:scale(.35); }
+        21%,58% { opacity:1; transform:scale(1); }
+        59%,100% { opacity:0; transform:scale(1.35); }
+      }
+      @keyframes chipSpit {
+        0% { opacity:0; transform:translate(0,0) rotate(0); }
+        18% { opacity:1; }
+        72% { opacity:1; }
+        100% { opacity:0; transform:translate(var(--x,-12px),var(--y,-13px)) rotate(180deg); }
+      }
       @keyframes maxPop { 0% { opacity:0; transform:rotate(7deg) scale(.4); } 20%,75% { opacity:1; transform:rotate(-5deg) scale(1.2); } 100% { opacity:0; transform:rotate(5deg) scale(1.45); } }
       @keyframes pixelBurst { 0% { opacity:1; transform:translate(0,0) rotate(0); } 75% { opacity:1; } 100% { opacity:0; transform:translate(var(--x),var(--y)) rotate(180deg); } }
       @keyframes overloadShake { 0% { transform:translate(-2px,1px); } 100% { transform:translate(2px,-1px); } }
@@ -229,9 +274,12 @@
     <section class="overlay">
       <button class="close" aria-label="关闭" onclick="window.close()">×</button>
       <div class="hud">
-        <div class="legend"><span>PWR</span><span id="cache-hit">HIT --%</span></div>
+        <div class="legend" id="cache-hit">HIT --.----%</div>
         <div class="bar-shell">
           <div class="bar-track"><div class="bar-fill" id="bar"></div><div class="number" id="total">—</div></div>
+        </div>
+        <div class="chips" aria-hidden="true">
+          <i class="chip c1"></i><i class="chip c2"></i><i class="chip c3"></i><i class="chip c4"></i><i class="chip c5"></i>
         </div>
         <div class="max">MAX!!</div>
         <i class="pixel p1"></i><i class="pixel p2"></i><i class="pixel p3"></i>

@@ -2,6 +2,7 @@ const overlay = document.querySelector(".overlay")
 const totalElement = document.querySelector("#total")
 const barElement = document.querySelector("#bar")
 const cacheHitElement = document.querySelector("#cache-hit")
+const hudElement = document.querySelector(".hud")
 
 // UI 每秒最多推进 10K Token。真实目标值始终完整保留，不会丢失用量。
 const MAX_TOKENS_PER_SECOND = 10_000
@@ -19,8 +20,8 @@ const total = (value) => value.input + value.cache + value.output
 function paintCacheHit(stats) {
   const promptTokens = stats.input + stats.cacheRead + stats.cacheWrite
   cacheHitElement.textContent = promptTokens > 0
-    ? `HIT ${Math.round(stats.cacheRead / promptTokens * 100)}%`
-    : "HIT --%"
+    ? `HIT ${(stats.cacheRead / promptTokens * 100).toFixed(4)}%`
+    : "HIT --.----%"
 }
 
 function paint(value) {
@@ -29,6 +30,7 @@ function paint(value) {
   const bar = Math.floor(valueTotal / TOKENS_PER_BAR)
   const progress = (valueTotal % TOKENS_PER_BAR) / TOKENS_PER_BAR
   barElement.style.width = `${Math.max(1, progress * 100)}%`
+  hudElement.style.setProperty("--chip-x", `${9 + progress * 234}px`)
   if (previousBar !== undefined && bar > previousBar) triggerBurst()
   previousBar = bar
 }
