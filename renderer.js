@@ -1,7 +1,7 @@
 const overlay = document.querySelector(".overlay")
 const totalElement = document.querySelector("#total")
 const barElement = document.querySelector("#bar")
-const scaleElement = document.querySelector("#scale")
+const cacheHitElement = document.querySelector("#cache-hit")
 
 // UI 每秒最多推进 10K Token。真实目标值始终完整保留，不会丢失用量。
 const MAX_TOKENS_PER_SECOND = 10_000
@@ -14,16 +14,14 @@ let previousFrame
 let previousBar
 let burstTimer
 
-const compact = (value) => {
-  if (value >= 1_000_000_000) return `${(value / 1_000_000_000).toFixed(2)}B`
-  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(2)}M`
-  if (value >= 1_000) return `${(value / 1_000).toFixed(1)}K`
-  return Math.round(value).toLocaleString()
-}
-
-scaleElement.textContent = compact(TOKENS_PER_BAR)
-
 const total = (value) => value.input + value.cache + value.output
+
+function paintCacheHit(stats) {
+  const promptTokens = stats.input + stats.cacheRead + stats.cacheWrite
+  cacheHitElement.textContent = promptTokens > 0
+    ? `HIT ${Math.round(stats.cacheRead / promptTokens * 100)}%`
+    : "HIT --%"
+}
 
 function paint(value) {
   const valueTotal = total(value)
@@ -100,6 +98,7 @@ window.tokenMonitor.onStats((stats) => {
     output: stats.output,
     cost: stats.cost,
   }
+  paintCacheHit(stats)
   if (!shown) {
     // 首次启动直接显示今日基线，只有后续真实增量才进入慢速队列。
     shown = { ...next }

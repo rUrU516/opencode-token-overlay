@@ -6,10 +6,12 @@ const path = require("node:path")
 let overlay
 let stopping = false
 
-const empty = () => ({ input: 0, cache: 0, output: 0, cost: 0 })
+const empty = () => ({ input: 0, cache: 0, cacheRead: 0, cacheWrite: 0, output: 0, cost: 0 })
 const add = (target, value) => {
   target.input += value.input
   target.cache += value.cache
+  target.cacheRead += value.cacheRead
+  target.cacheWrite += value.cacheWrite
   target.output += value.output
   target.cost += value.cost
   return target
@@ -17,6 +19,8 @@ const add = (target, value) => {
 const usage = (tokens = {}, cost = 0) => ({
   input: tokens.input ?? 0,
   cache: (tokens.cache?.read ?? 0) + (tokens.cache?.write ?? 0),
+  cacheRead: tokens.cache?.read ?? 0,
+  cacheWrite: tokens.cache?.write ?? 0,
   output: (tokens.output ?? 0) + (tokens.reasoning ?? 0),
   cost: cost ?? 0,
 })
@@ -143,6 +147,8 @@ async function monitor() {
         const delta = {
           input: Math.max(0, next.input - previous.input),
           cache: Math.max(0, next.cache - previous.cache),
+          cacheRead: Math.max(0, next.cacheRead - previous.cacheRead),
+          cacheWrite: Math.max(0, next.cacheWrite - previous.cacheWrite),
           output: Math.max(0, next.output - previous.output),
           cost: Math.max(0, next.cost - previous.cost),
         }
