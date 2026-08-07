@@ -1,6 +1,7 @@
 const overlay = document.querySelector(".overlay")
 const totalElement = document.querySelector("#total")
 const barElement = document.querySelector("#bar")
+const scaleElement = document.querySelector("#scale")
 
 // UI 每秒最多推进 10K Token。真实目标值始终完整保留，不会丢失用量。
 const MAX_TOKENS_PER_SECOND = 10_000
@@ -19,6 +20,8 @@ const compact = (value) => {
   if (value >= 1_000) return `${(value / 1_000).toFixed(1)}K`
   return Math.round(value).toLocaleString()
 }
+
+scaleElement.textContent = compact(TOKENS_PER_BAR)
 
 const total = (value) => value.input + value.cache + value.output
 
