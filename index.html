@@ -22,22 +22,23 @@
 
       .hud {
         position: absolute;
-        left: 8px;
-        top: 7px;
-        width: 288px;
-        height: 66px;
-        filter: drop-shadow(4px 5px 0 rgba(10,9,15,.48));
+        left: 6px;
+        top: 4px;
+        width: 256px;
+        height: 54px;
+        filter: drop-shadow(3px 4px 0 rgba(10,9,15,.52));
       }
       .bar-shell {
         position: absolute;
         left: 2px;
-        top: 15px;
-        width: 258px;
-        height: 38px;
-        padding: 5px;
+        top: 10px;
+        width: 248px;
+        height: 34px;
+        padding: 4px;
         border: 3px solid #17151e;
-        background: #40394d;
-        box-shadow: inset 0 3px 0 #74657e, inset 0 -3px 0 #252330, inset 0 0 0 2px #111219, 3px 3px 0 rgba(0,0,0,.3);
+        background: #3d354a;
+        box-shadow: inset 0 3px 0 #806d86, inset 0 -3px 0 #211e2a, inset 0 0 0 2px #0e1016, 3px 3px 0 #100e16;
+        clip-path: polygon(4px 0,calc(100% - 4px) 0,calc(100% - 4px) 2px,100% 2px,100% calc(100% - 4px),calc(100% - 4px) calc(100% - 4px),calc(100% - 4px) 100%,4px 100%,4px calc(100% - 2px),0 calc(100% - 2px),0 4px,4px 4px);
       }
       .bar-shell::before {
         content: "";
@@ -48,12 +49,12 @@
         width: 3px;
         height: 3px;
         background: #b29bbb;
-        box-shadow: 248px 0 #b29bbb, 0 28px #181620, 248px 28px #181620;
+        box-shadow: 238px 0 #b29bbb, 0 24px #181620, 238px 24px #181620;
       }
       .bar-track {
         position: relative;
         width: 100%;
-        height: 22px;
+        height: 20px;
         overflow: hidden;
         background: repeating-linear-gradient(0deg,#111219 0 3px,#191b25 3px 5px);
       }
@@ -84,15 +85,14 @@
       .overlay:not(.active):not(.disconnected):not(.burst) .bar-shell { animation: idleShellBreath 3.2s steps(4) infinite; }
       .overlay:not(.active):not(.disconnected):not(.burst) .bar-fill { animation: idleFillBreath 3.2s steps(4) infinite; }
       .overlay:not(.active):not(.disconnected):not(.burst) .number { animation: idleNumberBreath 3.2s steps(4) infinite; }
-      .overlay:not(.active):not(.disconnected):not(.burst) .cap { animation: idleCapBreath 3.2s steps(4) infinite; }
       .active .bar-track::after {
         content: "";
         position: absolute;
         z-index: 2;
         top: 0;
         left: -30px;
-        width: 23px;
-        height: 22px;
+        width: 20px;
+        height: 20px;
         background: rgba(255,255,255,.68);
         transform: skewX(-20deg);
         animation: scan .68s linear infinite;
@@ -106,7 +106,7 @@
         justify-content: center;
         padding-bottom: 1px;
         color: #fff2a6;
-        font-size: 19px;
+        font-size: 17px;
         font-weight: 900;
         line-height: 1;
         text-align: center;
@@ -118,23 +118,9 @@
       }
       .active .number { color: #fff77b; animation: numberGlitch .18s steps(2) infinite; }
 
-      .cap {
-        position: absolute;
-        right: 2px;
-        top: 15px;
-        width: 29px;
-        height: 38px;
-        border: 3px solid #17151e;
-        background: linear-gradient(0deg,#b83242 0 25%,#e34a43 25% 75%,#ff7450 75% 100%);
-        box-shadow: inset 3px 0 #ff8b59, inset -4px 0 #8e293a, 3px 3px rgba(0,0,0,.3);
-      }
-      .cap::before { content: ""; position: absolute; left: 7px; top: 7px; width: 9px; height: 18px; background: #f6d95b; box-shadow: inset 3px 0 #fff3a0, inset -3px 0 #c08c38; }
-      .cap::after { content: ""; position: absolute; left: 9px; top: 10px; width: 3px; height: 3px; background: #fff5ae; box-shadow: 0 6px #9e6535,0 12px #fff5ae; }
-      .active .cap { animation: capVibrate .16s steps(2) infinite; }
-
       .max {
         position: absolute;
-        right: 0;
+        right: 1px;
         top: 0;
         z-index: 8;
         color: #fff56d;
@@ -148,7 +134,7 @@
       }
       .burst .max { animation: maxPop .52s steps(4); }
 
-      .pixel { position: absolute; right: 16px; top: 34px; width: 6px; height: 6px; opacity: 0; background: var(--c,#fff36f); border: 1px solid #17151e; }
+      .pixel { position: absolute; right: 5px; top: 27px; width: 6px; height: 6px; opacity: 0; background: var(--c,#fff36f); border: 1px solid #17151e; }
       .burst .pixel { animation: pixelBurst .54s steps(5); }
       .p1 { --x:-28px; --y:-27px; }
       .p2 { --x:13px; --y:-23px; --c:#ff654b; animation-delay:20ms !important; }
@@ -166,13 +152,13 @@
         left: 0;
         bottom: 0;
         z-index: 20;
-        width: 16px;
-        height: 16px;
+        width: 14px;
+        height: 14px;
         border: 2px solid #202129;
         border-radius: 2px;
         color: #202129;
         background: #fff1a6;
-        font: 900 10px/11px monospace;
+        font: 900 9px/9px monospace;
         cursor: pointer;
         opacity: 0;
         transition: opacity .12s;
@@ -180,7 +166,7 @@
       }
       .overlay:hover .close { opacity: 1; }
 
-      @keyframes scan { to { transform: translateX(285px) skewX(-20deg); } }
+      @keyframes scan { to { transform: translateX(255px) skewX(-20deg); } }
       @keyframes idleShellBreath {
         0%,100% { filter: brightness(.92); }
         50% { filter: brightness(1.12); }
@@ -193,11 +179,6 @@
         0%,100% { color:#fff2a6; text-shadow:2px 2px 0 #923f3d; }
         50% { color:#fffbd8; text-shadow:2px 2px 0 #923f3d,0 0 6px rgba(255,231,91,.55); }
       }
-      @keyframes idleCapBreath {
-        0%,100% { filter: brightness(.9); }
-        50% { filter: brightness(1.14); }
-      }
-      @keyframes capVibrate { to { transform: translate(1px,-1px); filter: brightness(1.18); } }
       @keyframes numberGlitch { to { transform: translateX(1px); } }
       @keyframes maxPop { 0% { opacity:0; transform:rotate(7deg) scale(.4); } 20%,75% { opacity:1; transform:rotate(-5deg) scale(1.2); } 100% { opacity:0; transform:rotate(5deg) scale(1.45); } }
       @keyframes pixelBurst { 0% { opacity:1; transform:translate(0,0) rotate(0); } 75% { opacity:1; } 100% { opacity:0; transform:translate(var(--x),var(--y)) rotate(180deg); } }
@@ -212,7 +193,6 @@
         <div class="bar-shell">
           <div class="bar-track"><div class="bar-fill" id="bar"></div><div class="number" id="total">—</div></div>
         </div>
-        <div class="cap"></div>
         <div class="max">MAX!!</div>
         <i class="pixel p1"></i><i class="pixel p2"></i><i class="pixel p3"></i>
         <i class="pixel p4"></i><i class="pixel p5"></i><i class="pixel p6"></i>
