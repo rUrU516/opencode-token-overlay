@@ -2,7 +2,7 @@ const overlay = document.querySelector(".overlay")
 const totalElement = document.querySelector("#total")
 const barElement = document.querySelector("#bar")
 
-// UI 每秒最多推进 50K Token。真实目标值始终完整保留，不会丢失用量。
+// UI 每秒最多推进 10K Token。真实目标值始终完整保留，不会丢失用量。
 const MAX_TOKENS_PER_SECOND = 10_000
 const TOKENS_PER_BAR = 100_000
 let shown

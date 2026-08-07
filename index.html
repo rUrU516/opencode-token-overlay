@@ -56,6 +56,10 @@
         background: repeating-linear-gradient(90deg, transparent 0 13px, rgba(23,24,32,.6) 13px 16px);
       }
       .active .bar-fill { filter: brightness(1.18) saturate(1.2); }
+      .overlay:not(.active):not(.disconnected):not(.burst) .bar-shell { animation: idleShellBreath 3.2s ease-in-out infinite; }
+      .overlay:not(.active):not(.disconnected):not(.burst) .bar-fill { animation: idleFillBreath 3.2s ease-in-out infinite; }
+      .overlay:not(.active):not(.disconnected):not(.burst) .number { animation: idleNumberBreath 3.2s ease-in-out infinite; }
+      .overlay:not(.active):not(.disconnected):not(.burst) .cap { animation: idleCapBreath 3.2s ease-in-out infinite; }
       .active .bar-track::after {
         content: "";
         position: absolute;
@@ -151,6 +155,22 @@
       .overlay:hover .close { opacity: 1; }
 
       @keyframes scan { to { transform: translateX(285px) skewX(-20deg); } }
+      @keyframes idleShellBreath {
+        0%,100% { filter: brightness(.92); }
+        50% { filter: brightness(1.12); }
+      }
+      @keyframes idleFillBreath {
+        0%,100% { filter: brightness(.82) saturate(.88); }
+        50% { filter: brightness(1.14) saturate(1.08); }
+      }
+      @keyframes idleNumberBreath {
+        0%,100% { color:#fff8c4; text-shadow:2px 2px 0 rgba(111,45,40,.8); }
+        50% { color:#fffbd8; text-shadow:2px 2px 0 rgba(111,45,40,.8),0 0 7px rgba(255,243,139,.55); }
+      }
+      @keyframes idleCapBreath {
+        0%,100% { filter: brightness(.9); }
+        50% { filter: brightness(1.14); }
+      }
       @keyframes capVibrate { to { transform: translate(1px,-1px); filter: brightness(1.18); } }
       @keyframes numberGlitch { to { transform: translateX(1px); } }
       @keyframes maxPop { 0% { opacity:0; transform:rotate(7deg) scale(.4); } 20%,75% { opacity:1; transform:rotate(-5deg) scale(1.2); } 100% { opacity:0; transform:rotate(5deg) scale(1.45); } }
