@@ -8,7 +8,7 @@
       :root { color-scheme: dark; }
       * { box-sizing: border-box; }
       html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: transparent; }
-      body { font-family: "SFMono-Regular", Menlo, Monaco, Consolas, monospace; user-select: none; }
+      body { font-family: Monaco, "Courier New", monospace; user-select: none; }
       .overlay {
         position: relative;
         width: 100%;
@@ -26,7 +26,7 @@
         top: 7px;
         width: 288px;
         height: 66px;
-        filter: drop-shadow(4px 5px 0 rgba(0,0,0,.32));
+        filter: drop-shadow(4px 5px 0 rgba(10,9,15,.48));
       }
       .bar-shell {
         position: absolute;
@@ -35,31 +35,56 @@
         width: 258px;
         height: 38px;
         padding: 5px;
-        border: 3px solid #202129;
-        background: #353743;
-        box-shadow: inset 0 0 0 2px #15161c, 3px 3px 0 rgba(0,0,0,.23);
+        border: 3px solid #17151e;
+        background: #40394d;
+        box-shadow: inset 0 3px 0 #74657e, inset 0 -3px 0 #252330, inset 0 0 0 2px #111219, 3px 3px 0 rgba(0,0,0,.3);
       }
-      .bar-track { position: relative; width: 100%; height: 22px; overflow: hidden; background: #171820; }
+      .bar-shell::before {
+        content: "";
+        position: absolute;
+        z-index: 7;
+        left: 1px;
+        top: 1px;
+        width: 3px;
+        height: 3px;
+        background: #b29bbb;
+        box-shadow: 248px 0 #b29bbb, 0 28px #181620, 248px 28px #181620;
+      }
+      .bar-track {
+        position: relative;
+        width: 100%;
+        height: 22px;
+        overflow: hidden;
+        background: repeating-linear-gradient(0deg,#111219 0 3px,#191b25 3px 5px);
+      }
+      .bar-track::before {
+        content: "";
+        position: absolute;
+        z-index: 4;
+        inset: 0;
+        pointer-events: none;
+        background: repeating-linear-gradient(0deg,transparent 0 3px,rgba(4,5,9,.2) 3px 4px);
+      }
       .bar-fill {
         position: absolute;
         inset: 0 auto 0 0;
         width: 0;
         min-width: 2px;
-        background: linear-gradient(90deg, #4ed36a 0 48%, #f0d64e 69%, #ff654b 100%);
-        box-shadow: inset 0 4px rgba(255,255,255,.27), inset 0 -4px rgba(0,0,0,.18);
+        background: linear-gradient(90deg,#35bd59 0 50%,#e3c83c 50% 74%,#e87932 74% 88%,#e84b42 88% 100%);
+        box-shadow: inset 0 4px rgba(255,255,210,.3), inset 0 -4px rgba(72,27,34,.3);
         transition: width 50ms linear;
       }
       .bar-fill::after {
         content: "";
         position: absolute;
         inset: 0;
-        background: repeating-linear-gradient(90deg, transparent 0 13px, rgba(23,24,32,.6) 13px 16px);
+        background: repeating-linear-gradient(90deg,transparent 0 13px,#171720 13px 16px);
       }
       .active .bar-fill { filter: brightness(1.18) saturate(1.2); }
-      .overlay:not(.active):not(.disconnected):not(.burst) .bar-shell { animation: idleShellBreath 3.2s ease-in-out infinite; }
-      .overlay:not(.active):not(.disconnected):not(.burst) .bar-fill { animation: idleFillBreath 3.2s ease-in-out infinite; }
-      .overlay:not(.active):not(.disconnected):not(.burst) .number { animation: idleNumberBreath 3.2s ease-in-out infinite; }
-      .overlay:not(.active):not(.disconnected):not(.burst) .cap { animation: idleCapBreath 3.2s ease-in-out infinite; }
+      .overlay:not(.active):not(.disconnected):not(.burst) .bar-shell { animation: idleShellBreath 3.2s steps(4) infinite; }
+      .overlay:not(.active):not(.disconnected):not(.burst) .bar-fill { animation: idleFillBreath 3.2s steps(4) infinite; }
+      .overlay:not(.active):not(.disconnected):not(.burst) .number { animation: idleNumberBreath 3.2s steps(4) infinite; }
+      .overlay:not(.active):not(.disconnected):not(.burst) .cap { animation: idleCapBreath 3.2s steps(4) infinite; }
       .active .bar-track::after {
         content: "";
         position: absolute;
@@ -80,16 +105,16 @@
         align-items: center;
         justify-content: center;
         padding-bottom: 1px;
-        color: #fff8c4;
+        color: #fff2a6;
         font-size: 19px;
         font-weight: 900;
         line-height: 1;
         text-align: center;
         letter-spacing: -.055em;
         font-variant-numeric: tabular-nums;
-        -webkit-text-stroke: 2px #202129;
+        -webkit-text-stroke: 2px #17151e;
         paint-order: stroke fill;
-        text-shadow: 2px 2px 0 rgba(111,45,40,.8);
+        text-shadow: 2px 2px 0 #923f3d;
       }
       .active .number { color: #fff77b; animation: numberGlitch .18s steps(2) infinite; }
 
@@ -99,11 +124,12 @@
         top: 15px;
         width: 29px;
         height: 38px;
-        border: 3px solid #202129;
-        background: #ff5b48;
-        box-shadow: inset 4px 4px rgba(255,255,255,.18), inset -4px -4px rgba(130,32,35,.28), 3px 3px rgba(0,0,0,.23);
+        border: 3px solid #17151e;
+        background: linear-gradient(0deg,#b83242 0 25%,#e34a43 25% 75%,#ff7450 75% 100%);
+        box-shadow: inset 3px 0 #ff8b59, inset -4px 0 #8e293a, 3px 3px rgba(0,0,0,.3);
       }
-      .cap::before { content: ""; position: absolute; left: 7px; top: 7px; width: 9px; height: 18px; background: #fff18b; box-shadow: inset 3px 0 rgba(255,255,255,.4); }
+      .cap::before { content: ""; position: absolute; left: 7px; top: 7px; width: 9px; height: 18px; background: #f6d95b; box-shadow: inset 3px 0 #fff3a0, inset -3px 0 #c08c38; }
+      .cap::after { content: ""; position: absolute; left: 9px; top: 10px; width: 3px; height: 3px; background: #fff5ae; box-shadow: 0 6px #9e6535,0 12px #fff5ae; }
       .active .cap { animation: capVibrate .16s steps(2) infinite; }
 
       .max {
@@ -114,7 +140,7 @@
         color: #fff56d;
         font: 900 12px/1 monospace;
         letter-spacing: -.08em;
-        -webkit-text-stroke: 2px #202129;
+        -webkit-text-stroke: 2px #17151e;
         paint-order: stroke fill;
         text-shadow: 2px 2px #e8483e;
         opacity: 0;
@@ -122,7 +148,7 @@
       }
       .burst .max { animation: maxPop .52s steps(4); }
 
-      .pixel { position: absolute; right: 16px; top: 34px; width: 6px; height: 6px; opacity: 0; background: var(--c,#fff36f); border: 1px solid #202129; }
+      .pixel { position: absolute; right: 16px; top: 34px; width: 6px; height: 6px; opacity: 0; background: var(--c,#fff36f); border: 1px solid #17151e; }
       .burst .pixel { animation: pixelBurst .54s steps(5); }
       .p1 { --x:-28px; --y:-27px; }
       .p2 { --x:13px; --y:-23px; --c:#ff654b; animation-delay:20ms !important; }
@@ -164,8 +190,8 @@
         50% { filter: brightness(1.14) saturate(1.08); }
       }
       @keyframes idleNumberBreath {
-        0%,100% { color:#fff8c4; text-shadow:2px 2px 0 rgba(111,45,40,.8); }
-        50% { color:#fffbd8; text-shadow:2px 2px 0 rgba(111,45,40,.8),0 0 7px rgba(255,243,139,.55); }
+        0%,100% { color:#fff2a6; text-shadow:2px 2px 0 #923f3d; }
+        50% { color:#fffbd8; text-shadow:2px 2px 0 #923f3d,0 0 6px rgba(255,231,91,.55); }
       }
       @keyframes idleCapBreath {
         0%,100% { filter: brightness(.9); }
