@@ -1,0 +1,14 @@
+{
+  "name": "opencode-token-overlay",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A draggable animated macOS overlay for OpenCode token usage",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "check": "node --check main.js && node --check preload.js && node --check renderer.js"
+  },
+  "devDependencies": {
+    "electron": "latest"
+  }
+}
