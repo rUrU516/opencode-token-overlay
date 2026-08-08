@@ -129,13 +129,20 @@ async function monitor() {
   let retry = 1_000
   while (!stopping) {
     const controller = new AbortController()
+    let rolloverTimer
+    let idleTimer
     try {
       send({ status: "connecting" })
       const endpoint = await service()
       const state = await bootstrap(endpoint)
       send({ status: "idle", ...state.today })
       retry = 1_000
-      let idleTimer
+
+      // 跨过本地零点后重新汇总当天消息。不能只等待 Usage 事件，
+      // 否则悬浮窗在零点后无新请求时会一直保留昨天的总量。
+      const nextMidnight = new Date()
+      nextMidnight.setHours(24, 0, 0, 0)
+      rolloverTimer = setTimeout(() => controller.abort("day-rollover"), Math.max(0, nextMidnight.getTime() - Date.now() + 250))
 
       await subscribe(endpoint, (event) => {
         if (event.type !== "session.usage.updated") return
@@ -161,10 +168,16 @@ async function monitor() {
       }, controller.signal)
     } catch (error) {
       if (stopping) return
+      if (controller.signal.reason === "day-rollover") {
+        retry = 1_000
+        continue
+      }
       send({ status: "disconnected", message: error.message })
       await new Promise((resolve) => setTimeout(resolve, retry))
       retry = Math.min(retry * 2, 15_000)
     } finally {
+      clearTimeout(rolloverTimer)
+      clearTimeout(idleTimer)
       controller.abort()
     }
   }
