@@ -107,8 +107,12 @@
         border: 1px solid #4a4c58;
         color: #b9bdc8;
         background: #252731;
+        cursor: pointer;
+        text-align: left;
         font: 9px/1.25 Monaco, monospace;
       }
+      .question-option:hover:not(:disabled) { border-color: #817787; background: #302d38; }
+      .question-option:disabled { cursor: default; opacity: .65; }
       .question-option.selected { border-color: #58c96c; color: #d2f5d8; background: #203127; }
       .question-option.custom { border-style: dashed; color: #a4a8b4; }
       .question-option-index { flex: 0 0 15px; color: #d9b85f; }
@@ -125,6 +129,60 @@
         font: 9px/1.45 Monaco, monospace;
       }
       .question-answer.rejected { border-color: #dd574f; color: #ffc1b9; background: #342124; }
+      .question-progress {
+        display: flex;
+        gap: 4px;
+        margin-bottom: 8px;
+      }
+      .question-progress i { display: block; flex: 1; height: 3px; background: #3d3d48; }
+      .question-progress i.done { background: #53c56a; }
+      .question-progress i.current { background: #e1c753; }
+      .question-hint { margin-top: 6px; color: #727785; font: 8px/1.35 Monaco, monospace; }
+      .question-custom-input {
+        width: 100%;
+        min-height: 42px;
+        margin-top: 6px;
+        padding: 7px;
+        resize: none;
+        border: 1px dashed #686371;
+        outline: none;
+        color: #f2eddb;
+        background: #15171f;
+        font: 9px/1.4 Monaco, monospace;
+      }
+      .question-custom-input:focus { border-color: #dfc754; }
+      .question-actions {
+        position: sticky;
+        bottom: -11px;
+        display: flex;
+        justify-content: space-between;
+        gap: 6px;
+        margin: 10px -9px -11px;
+        padding: 8px 9px 9px;
+        border-top: 1px solid #343641;
+        background: #1b1c25;
+      }
+      .question-actions-right { display: flex; gap: 6px; margin-left: auto; }
+      .question-button {
+        min-height: 27px;
+        padding: 6px 8px;
+        border: 2px solid #17151e;
+        color: #d8d9d6;
+        background: #41414d;
+        box-shadow: inset 0 2px #6d6d78, 2px 2px #101117;
+        cursor: pointer;
+        font: 6px/1.25 "Press Start 2P", monospace;
+      }
+      .question-button:hover:not(:disabled) { filter: brightness(1.15); }
+      .question-button:disabled { cursor: default; opacity: .4; }
+      .question-button.primary { color: #101511; background: #59cb6c; box-shadow: inset 0 2px #9aefa6, 2px 2px #132017; }
+      .question-button.danger { color: #ffd0c9; background: #793d43; box-shadow: inset 0 2px #b76868, 2px 2px #211014; }
+      .question-summary { display: flex; flex-direction: column; gap: 7px; }
+      .question-summary-item { padding: 7px; border: 1px solid #3c3f49; background: #242630; }
+      .question-summary-title { color: #dfc754; font: 7px/1.35 "Press Start 2P", monospace; }
+      .question-summary-answer { margin-top: 4px; color: #c9eecf; font: 9px/1.4 Monaco, monospace; overflow-wrap: anywhere; }
+      .question-error { margin-top: 7px; color: #ff8a7f; font: 8px/1.4 Monaco, monospace; }
+      .question-sending { display: grid; min-height: 130px; place-items: center; color: #f2d762; font: 7px/1.7 "Press Start 2P", monospace; text-align: center; }
 
       .hud {
         position: absolute;

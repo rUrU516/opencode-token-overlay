@@ -63,6 +63,19 @@ async function json(endpoint, pathname) {
   return response.json()
 }
 
+async function mutate(endpoint, pathname, body) {
+  const response = await fetch(new URL(pathname, endpoint.url), {
+    method: "POST",
+    headers: { ...endpoint.headers, ...(body === undefined ? {} : { "content-type": "application/json" }) },
+    body: body === undefined ? undefined : JSON.stringify(body),
+    signal: AbortSignal.timeout(15_000),
+  })
+  if (response.ok) return
+  let detail
+  try { detail = await response.json() } catch { /* 非 JSON 错误响应 */ }
+  throw new Error(detail?.message ?? `${pathname}: HTTP ${response.status}`)
+}
+
 async function sessions(endpoint) {
   const result = []
   let cursor
@@ -122,7 +135,10 @@ function questionFromForm(form) {
   return {
     id: form.id,
     sessionID: form.sessionID,
+    protocol: "form",
     questions: form.fields.map((field, index) => ({
+      key: field.key,
+      type: field.type,
       header: field.title ?? `QUESTION ${index + 1}`,
       question: field.description ?? field.title ?? field.key,
       options: (field.options ?? []).map((option) => ({
@@ -136,6 +152,10 @@ function questionFromForm(form) {
     fieldKeys: form.fields.map((field) => field.key),
     tool: form.metadata?.tool,
   }
+}
+
+function questionFromLegacy(request) {
+  return { ...request, protocol: "question" }
 }
 
 function formAnswers(request, answer = {}) {
@@ -170,7 +190,7 @@ async function bootstrapQuestions(endpoint) {
   for (const result of pages) {
     if (result.status !== "fulfilled") continue
     for (const item of result.value.page.data ?? []) {
-      const request = result.value.kind === "form" ? questionFromForm(item) : item
+      const request = result.value.kind === "form" ? questionFromForm(item) : questionFromLegacy(item)
       if (request) requests.set(request.id, request)
     }
   }
@@ -258,8 +278,9 @@ async function monitor() {
           return
         }
         if (event.type === "question.asked") {
-          questionRequests.set(event.data.id, event.data)
-          sendQuestion({ type: "asked", request: event.data, pending: questionRequests.size })
+          const request = questionFromLegacy(event.data)
+          questionRequests.set(request.id, request)
+          sendQuestion({ type: "asked", request, pending: questionRequests.size })
           return
         }
         if (event.type === "question.replied") {
@@ -361,6 +382,42 @@ ipcMain.on("question-panel-state", (_event, state) => {
   const height = QUESTION_HEIGHTS[state]
   if (!height) return
   overlay.setSize(OVERLAY_WIDTH, height, true)
+})
+
+function trustedRenderer(event) {
+  return overlay && !overlay.isDestroyed() && event.sender === overlay.webContents
+}
+
+ipcMain.handle("question-reply", async (event, payload) => {
+  if (!trustedRenderer(event)) throw new Error("Untrusted renderer")
+  const endpoint = await service()
+  const sessionID = encodeURIComponent(payload.sessionID)
+  const requestID = encodeURIComponent(payload.requestID)
+  if (payload.protocol === "form") {
+    await mutate(endpoint, `/api/session/${sessionID}/form/${requestID}/reply`, { answer: payload.answer })
+    return
+  }
+  if (payload.protocol === "question") {
+    await mutate(endpoint, `/api/session/${sessionID}/question/${requestID}/reply`, { answers: payload.answers })
+    return
+  }
+  throw new Error("Unsupported question protocol")
+})
+
+ipcMain.handle("question-reject", async (event, payload) => {
+  if (!trustedRenderer(event)) throw new Error("Untrusted renderer")
+  const endpoint = await service()
+  const sessionID = encodeURIComponent(payload.sessionID)
+  const requestID = encodeURIComponent(payload.requestID)
+  if (payload.protocol === "form") {
+    await mutate(endpoint, `/api/session/${sessionID}/form/${requestID}/cancel`)
+    return
+  }
+  if (payload.protocol === "question") {
+    await mutate(endpoint, `/api/session/${sessionID}/question/${requestID}/reject`)
+    return
+  }
+  throw new Error("Unsupported question protocol")
 })
 
 app.whenReady().then(() => {

@@ -10,4 +10,10 @@ contextBridge.exposeInMainWorld("tokenMonitor", {
   setQuestionPanelState(state) {
     ipcRenderer.send("question-panel-state", state)
   },
+  replyQuestion(payload) {
+    return ipcRenderer.invoke("question-reply", payload)
+  },
+  rejectQuestion(payload) {
+    return ipcRenderer.invoke("question-reject", payload)
+  },
 })

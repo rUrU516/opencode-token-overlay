@@ -49,6 +49,108 @@ const escapeHTML = (value) => String(value ?? "").replace(/[&<>'"]/g, (character
   '"': "&quot;",
 })[character])
 
+const questionDrafts = new Map()
+
+function draftFor(request) {
+  let draft = questionDrafts.get(request.id)
+  if (draft) return draft
+  draft = {
+    page: 0,
+    answers: request.questions.map(() => []),
+    custom: request.questions.map(() => ""),
+    confirm: false,
+    submitting: false,
+    sent: false,
+    error: "",
+  }
+  questionDrafts.set(request.id, draft)
+  return draft
+}
+
+function valuesFor(draft, question, index) {
+  const selected = [...(draft.answers[index] ?? [])]
+  const custom = (draft.custom[index] ?? "").trim()
+  if (!custom) return selected
+  if (!question.multiple) return [custom]
+  return selected.includes(custom) ? selected : [...selected, custom]
+}
+
+function labelsFor(question, values) {
+  return values.map((value) => question.options.find((option) => (option.value ?? option.label) === value)?.label ?? value)
+}
+
+function progressHTML(total, page) {
+  return `<div class="question-progress">${Array.from({ length: total }, (_, index) => `<i class="${index < page ? "done" : index === page ? "current" : ""}"></i>`).join("")}</div>`
+}
+
+function readonlyBlocks(request, status, answers) {
+  return (request?.questions ?? []).map((question, index) => {
+    const selectedAnswers = answers?.[index] ?? []
+    const options = (question.options ?? []).map((option, optionIndex) => {
+      const selected = selectedAnswers.includes(option.value ?? option.label)
+      return `<div class="question-option${selected ? " selected" : ""}">
+        <span class="question-option-index">${selected ? "✓" : `${optionIndex + 1}.`}</span>
+        <span class="question-option-main">
+          <strong class="question-option-label">${escapeHTML(option.label)}</strong>
+          ${option.description ? `<small class="question-option-description">${escapeHTML(option.description)}</small>` : ""}
+        </span>
+      </div>`
+    }).join("")
+    const answer = status === "answered"
+      ? `<div class="question-answer">ANSWER: ${escapeHTML(selectedAnswers.join(" / ") || "—")}</div>`
+      : '<div class="question-answer rejected">QUESTION REJECTED</div>'
+    return `<section class="question-block">
+      <div class="question-header">${escapeHTML(question.header || `QUESTION ${index + 1}`)}</div>
+      <div class="question-text">${escapeHTML(question.question)}</div>
+      ${options ? `<div class="question-options">${options}</div>` : ""}
+      ${answer}
+    </section>`
+  }).join("")
+}
+
+function editorHTML(request, draft) {
+  const questions = request.questions
+  if (draft.submitting) {
+    return `<div class="question-sending">${draft.sent ? "SENT TO V2" : "SENDING..."}<br />PLEASE WAIT</div>${draft.error ? `<div class="question-error">${escapeHTML(draft.error)}</div>` : ""}`
+  }
+
+  if (draft.confirm) {
+    const summary = questions.map((question, index) => {
+      const labels = labelsFor(question, valuesFor(draft, question, index))
+      return `<div class="question-summary-item"><div class="question-summary-title">${index + 1}. ${escapeHTML(question.header || `QUESTION ${index + 1}`)}</div><div class="question-summary-answer">${escapeHTML(labels.join(" / ") || "—")}</div></div>`
+    }).join("")
+    return `${progressHTML(questions.length, questions.length)}
+      <div class="question-header">CONFIRM ANSWERS</div>
+      <div class="question-summary">${summary}</div>
+      ${draft.error ? `<div class="question-error">${escapeHTML(draft.error)}</div>` : ""}
+      <div class="question-actions"><button class="question-button danger" data-action="reject">DISMISS</button><div class="question-actions-right"><button class="question-button" data-action="edit">BACK</button><button class="question-button primary" data-action="confirm">CONFIRM</button></div></div>`
+  }
+
+  const index = Math.min(draft.page, questions.length - 1)
+  const question = questions[index]
+  const selected = draft.answers[index] ?? []
+  const options = (question.options ?? []).map((option, optionIndex) => {
+    const value = option.value ?? option.label
+    const picked = selected.includes(value)
+    return `<button class="question-option${picked ? " selected" : ""}" type="button" data-option="${optionIndex}">
+      <span class="question-option-index">${picked ? "✓" : `${optionIndex + 1}.`}</span>
+      <span class="question-option-main"><strong class="question-option-label">${escapeHTML(option.label)}</strong>${option.description ? `<small class="question-option-description">${escapeHTML(option.description)}</small>` : ""}</span>
+    </button>`
+  }).join("")
+  const custom = question.custom
+    ? `<textarea class="question-custom-input" data-custom placeholder="输入自定义回答…">${escapeHTML(draft.custom[index] ?? "")}</textarea>`
+    : ""
+  const answered = valuesFor(draft, question, index).length > 0
+  return `${progressHTML(questions.length, index)}
+    <div class="question-header">${escapeHTML(question.header || `QUESTION ${index + 1}`)}</div>
+    <div class="question-text">${escapeHTML(question.question)}</div>
+    <div class="question-hint">${question.multiple ? "MULTI SELECT" : "SELECT ONE"} · ${index + 1}/${questions.length}</div>
+    ${options ? `<div class="question-options">${options}</div>` : ""}
+    ${custom}
+    ${draft.error ? `<div class="question-error">${escapeHTML(draft.error)}</div>` : ""}
+    <div class="question-actions"><button class="question-button danger" data-action="reject">DISMISS</button><div class="question-actions-right">${index > 0 ? '<button class="question-button" data-action="back">BACK</button>' : ""}<button class="question-button primary" data-action="next"${answered ? "" : " disabled"}>${index === questions.length - 1 ? "REVIEW" : "NEXT"}</button></div></div>`
+}
+
 function renderQuestion() {
   if (!currentQuestion) {
     questionPanel.hidden = true
@@ -61,41 +163,113 @@ function renderQuestion() {
   questionPanel.classList.toggle("collapsed", questionCollapsed)
   questionToggle.setAttribute("aria-expanded", String(!questionCollapsed))
   questionStatus.dataset.status = status
-  questionStatus.textContent = status === "waiting" ? "QUESTION" : status === "answered" ? "ANSWERED" : "REJECTED"
-  questionCount.textContent = pendingQuestions.size > 0 ? `· Q:${pendingQuestions.size}` : ""
-
-  const questions = request?.questions ?? []
-  const blocks = questions.map((question, index) => {
-    const selectedAnswers = answers?.[index] ?? []
-    const options = (question.options ?? []).map((option, optionIndex) => {
-      const selected = selectedAnswers.includes(option.value ?? option.label)
-      return `<div class="question-option${selected ? " selected" : ""}">
-        <span class="question-option-index">${selected ? "✓" : `${optionIndex + 1}.`}</span>
-        <span class="question-option-main">
-          <strong class="question-option-label">${escapeHTML(option.label)}</strong>
-          ${option.description ? `<small class="question-option-description">${escapeHTML(option.description)}</small>` : ""}
-        </span>
-      </div>`
-    }).join("")
-    const custom = question.custom && status === "waiting"
-      ? `<div class="question-option custom"><span class="question-option-index">+</span><span class="question-option-main"><strong class="question-option-label">TYPE YOUR OWN</strong><small class="question-option-description">可输入自定义回答</small></span></div>`
-      : ""
-    const answer = status === "answered"
-      ? `<div class="question-answer">ANSWER: ${escapeHTML((answers?.[index] ?? []).join(" / ") || "—")}</div>`
-      : status === "rejected"
-        ? '<div class="question-answer rejected">QUESTION REJECTED</div>'
-        : ""
-    return `<section class="question-block">
-      <div class="question-header">${escapeHTML(question.header || `QUESTION ${index + 1}`)}</div>
-      <div class="question-text">${escapeHTML(question.question)}</div>
-      ${options || custom ? `<div class="question-options">${options}${custom}</div>` : ""}
-      ${answer}
-    </section>`
-  }).join("")
-
-  questionContent.innerHTML = `<div class="question-meta"><span>${escapeHTML(request?.sessionID ?? "SESSION UNKNOWN")}</span><span>${questions.length || 1} ITEM${questions.length === 1 ? "" : "S"}</span></div>${blocks || `<section class="question-block"><div class="question-text">${escapeHTML(requestID ?? "QUESTION UPDATED")}</div></section>`}`
+  const draft = status === "waiting" && request ? draftFor(request) : undefined
+  questionStatus.textContent = status === "waiting" ? (draft?.submitting ? "SENDING" : draft?.confirm ? "CONFIRM" : "QUESTION") : status === "answered" ? "ANSWERED" : "REJECTED"
+  const progress = draft && request.questions.length > 1 ? ` · ${Math.min(draft.page + 1, request.questions.length)}/${request.questions.length}` : ""
+  questionCount.textContent = `${progress}${pendingQuestions.size > 0 ? ` · Q:${pendingQuestions.size}` : ""}`
+  const content = status === "waiting" && request
+    ? editorHTML(request, draft)
+    : readonlyBlocks(request, status, answers) || `<section class="question-block"><div class="question-text">${escapeHTML(requestID ?? "QUESTION UPDATED")}</div></section>`
+  questionContent.innerHTML = `<div class="question-meta"><span>${escapeHTML(request?.sessionID ?? "SESSION UNKNOWN")}</span><span>${request?.questions?.length ?? 1} ITEM${request?.questions?.length === 1 ? "" : "S"}</span></div>${content}`
   window.tokenMonitor.setQuestionPanelState(questionCollapsed ? "collapsed" : "expanded")
 }
+
+async function submitQuestion(request, draft) {
+  draft.submitting = true
+  draft.error = ""
+  renderQuestion()
+  const allAnswers = request.questions.map((question, index) => valuesFor(draft, question, index))
+  const payload = { protocol: request.protocol, sessionID: request.sessionID, requestID: request.id }
+  if (request.protocol === "form") {
+    payload.answer = Object.fromEntries(request.questions.map((question, index) => [question.key, question.type === "multiselect" ? allAnswers[index] : allAnswers[index][0] ?? ""]))
+  } else {
+    payload.answers = allAnswers
+  }
+  try {
+    await window.tokenMonitor.replyQuestion(payload)
+    draft.sent = true
+    renderQuestion()
+  } catch (error) {
+    draft.submitting = false
+    draft.error = error?.message ?? String(error)
+    renderQuestion()
+  }
+}
+
+async function rejectQuestion(request, draft) {
+  draft.submitting = true
+  draft.error = ""
+  renderQuestion()
+  try {
+    await window.tokenMonitor.rejectQuestion({ protocol: request.protocol, sessionID: request.sessionID, requestID: request.id })
+    draft.sent = true
+    renderQuestion()
+  } catch (error) {
+    draft.submitting = false
+    draft.error = error?.message ?? String(error)
+    renderQuestion()
+  }
+}
+
+questionContent.addEventListener("click", (event) => {
+  const request = currentQuestion?.status === "waiting" ? currentQuestion.request : undefined
+  if (!request) return
+  const draft = draftFor(request)
+  if (draft.submitting) return
+  const question = request.questions[draft.page]
+  const option = event.target.closest("[data-option]")
+  if (option && question) {
+    const item = question.options[Number(option.dataset.option)]
+    if (!item) return
+    const value = item.value ?? item.label
+    if (question.multiple) {
+      const selected = draft.answers[draft.page]
+      draft.answers[draft.page] = selected.includes(value) ? selected.filter((entry) => entry !== value) : [...selected, value]
+    } else {
+      draft.answers[draft.page] = [value]
+      draft.custom[draft.page] = ""
+    }
+    draft.error = ""
+    renderQuestion()
+    return
+  }
+
+  const action = event.target.closest("[data-action]")?.dataset.action
+  if (action === "back") {
+    draft.page = Math.max(0, draft.page - 1)
+    draft.error = ""
+    renderQuestion()
+  } else if (action === "next") {
+    if (!valuesFor(draft, question, draft.page).length) return
+    if (draft.page >= request.questions.length - 1) draft.confirm = true
+    else draft.page += 1
+    draft.error = ""
+    renderQuestion()
+  } else if (action === "edit") {
+    draft.confirm = false
+    draft.page = request.questions.length - 1
+    renderQuestion()
+  } else if (action === "confirm") {
+    void submitQuestion(request, draft)
+  } else if (action === "reject") {
+    void rejectQuestion(request, draft)
+  }
+})
+
+questionContent.addEventListener("input", (event) => {
+  if (!event.target.matches("[data-custom]")) return
+  const request = currentQuestion?.status === "waiting" ? currentQuestion.request : undefined
+  if (!request) return
+  const draft = draftFor(request)
+  const question = request.questions[draft.page]
+  draft.custom[draft.page] = event.target.value
+  if (!question.multiple && event.target.value.trim()) {
+    draft.answers[draft.page] = []
+    questionContent.querySelectorAll("[data-option].selected").forEach((option) => option.classList.remove("selected"))
+  }
+  const next = questionContent.querySelector('[data-action="next"]')
+  if (next) next.disabled = valuesFor(draft, question, draft.page).length === 0
+})
 
 function oldestPendingQuestion() {
   const request = pendingQuestions.values().next().value
@@ -118,6 +292,7 @@ function showQuestion(update) {
   } else if (update.type === "replied" || update.type === "rejected") {
     const currentResolved = currentQuestion?.status === "waiting" && currentQuestion.requestID === update.requestID
     pendingQuestions.delete(update.requestID)
+    questionDrafts.delete(update.requestID)
     // 其他客户端处理了队列中的非当前问题时，只从队列移除，不抢占当前内容。
     if (currentResolved) {
       if (pendingQuestions.size > 0) {
