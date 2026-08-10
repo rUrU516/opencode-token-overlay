@@ -1,10 +1,18 @@
-const { app, BrowserWindow, screen } = require("electron")
+const { app, BrowserWindow, ipcMain, screen } = require("electron")
 const { readFile } = require("node:fs/promises")
 const { homedir } = require("node:os")
 const path = require("node:path")
 
 let overlay
 let stopping = false
+
+const OVERLAY_WIDTH = 268
+const OVERLAY_HEIGHT = 76
+const QUESTION_HEIGHTS = {
+  hidden: OVERLAY_HEIGHT,
+  collapsed: 86,
+  expanded: 280,
+}
 
 const empty = () => ({ input: 0, cache: 0, cacheRead: 0, cacheWrite: 0, output: 0, cost: 0 })
 const add = (target, value) => {
@@ -28,6 +36,11 @@ const usage = (tokens = {}, cost = 0) => ({
 function send(payload) {
   if (!overlay || overlay.isDestroyed()) return
   overlay.webContents.send("token-stats", payload)
+}
+
+function sendQuestion(payload) {
+  if (!overlay || overlay.isDestroyed()) return
+  overlay.webContents.send("question-event", payload)
 }
 
 async function service() {
@@ -104,6 +117,66 @@ async function bootstrap(endpoint) {
   return { today, snapshots, midnight }
 }
 
+function questionFromForm(form) {
+  if (form.metadata?.kind !== "question") return
+  return {
+    id: form.id,
+    sessionID: form.sessionID,
+    questions: form.fields.map((field, index) => ({
+      header: field.title ?? `QUESTION ${index + 1}`,
+      question: field.description ?? field.title ?? field.key,
+      options: (field.options ?? []).map((option) => ({
+        value: option.value,
+        label: option.label,
+        description: option.description ?? "",
+      })),
+      multiple: field.type === "multiselect",
+      custom: field.custom === true,
+    })),
+    fieldKeys: form.fields.map((field) => field.key),
+    tool: form.metadata?.tool,
+  }
+}
+
+function formAnswers(request, answer = {}) {
+  return (request?.fieldKeys ?? []).map((key) => {
+    const value = answer[key]
+    if (value === undefined || value === null) return []
+    return Array.isArray(value) ? value.map(String) : [String(value)]
+  })
+}
+
+async function bootstrapQuestions(endpoint) {
+  let locations
+  try {
+    locations = await json(endpoint, "/api/debug/location")
+  } catch {
+    locations = []
+  }
+  if (!locations.length) locations = [undefined]
+
+  const pages = await Promise.allSettled(locations.flatMap((location) => {
+    const query = new URLSearchParams()
+    if (location?.directory) query.set("location[directory]", location.directory)
+    if (location?.workspaceID) query.set("location[workspace]", location.workspaceID)
+    const suffix = query.size ? `?${query}` : ""
+    return [
+      json(endpoint, `/api/question/request${suffix}`).then((page) => ({ kind: "question", page })),
+      json(endpoint, `/api/form/request${suffix}`).then((page) => ({ kind: "form", page })),
+    ]
+  }))
+
+  const requests = new Map()
+  for (const result of pages) {
+    if (result.status !== "fulfilled") continue
+    for (const item of result.value.page.data ?? []) {
+      const request = result.value.kind === "form" ? questionFromForm(item) : item
+      if (request) requests.set(request.id, request)
+    }
+  }
+  return requests
+}
+
 async function subscribe(endpoint, onEvent, signal) {
   const response = await fetch(new URL("/api/event", endpoint.url), { headers: endpoint.headers, signal })
   if (!response.ok || !response.body) throw new Error(`Event stream: HTTP ${response.status}`)
@@ -134,8 +207,19 @@ async function monitor() {
     try {
       send({ status: "connecting" })
       const endpoint = await service()
-      const state = await bootstrap(endpoint)
+      const queuedEvents = []
+      let ready = false
+      let streamError
+      const stream = subscribe(endpoint, (event) => {
+        if (!ready) queuedEvents.push(event)
+        else handleEvent(event)
+      }, controller.signal).catch((error) => { streamError = error })
+      const [state, questionRequests] = await Promise.all([
+        bootstrap(endpoint),
+        bootstrapQuestions(endpoint),
+      ])
       send({ status: "idle", ...state.today })
+      sendQuestion({ type: "sync", requests: [...questionRequests.values()] })
       retry = 1_000
 
       // 跨过本地零点后重新汇总当天消息。不能只等待 Usage 事件，
@@ -144,7 +228,52 @@ async function monitor() {
       nextMidnight.setHours(24, 0, 0, 0)
       rolloverTimer = setTimeout(() => controller.abort("day-rollover"), Math.max(0, nextMidnight.getTime() - Date.now() + 250))
 
-      await subscribe(endpoint, (event) => {
+      function handleEvent(event) {
+        if (event.type === "form.created") {
+          const request = questionFromForm(event.data.form)
+          if (!request) return
+          questionRequests.set(request.id, request)
+          sendQuestion({ type: "asked", request, pending: questionRequests.size })
+          return
+        }
+        if (event.type === "form.replied") {
+          const request = questionRequests.get(event.data.id)
+          if (!request) return
+          questionRequests.delete(event.data.id)
+          sendQuestion({
+            type: "replied",
+            request,
+            requestID: event.data.id,
+            sessionID: event.data.sessionID,
+            answers: formAnswers(request, event.data.answer),
+            pending: questionRequests.size,
+          })
+          return
+        }
+        if (event.type === "form.cancelled") {
+          const request = questionRequests.get(event.data.id)
+          if (!request) return
+          questionRequests.delete(event.data.id)
+          sendQuestion({ type: "rejected", request, requestID: event.data.id, sessionID: event.data.sessionID, pending: questionRequests.size })
+          return
+        }
+        if (event.type === "question.asked") {
+          questionRequests.set(event.data.id, event.data)
+          sendQuestion({ type: "asked", request: event.data, pending: questionRequests.size })
+          return
+        }
+        if (event.type === "question.replied") {
+          const request = questionRequests.get(event.data.requestID)
+          questionRequests.delete(event.data.requestID)
+          sendQuestion({ type: "replied", request, ...event.data, pending: questionRequests.size })
+          return
+        }
+        if (event.type === "question.rejected") {
+          const request = questionRequests.get(event.data.requestID)
+          questionRequests.delete(event.data.requestID)
+          sendQuestion({ type: "rejected", request, ...event.data, pending: questionRequests.size })
+          return
+        }
         if (event.type !== "session.usage.updated") return
         const next = usage(event.data.tokens, event.data.cost)
         const previous = state.snapshots.get(event.data.sessionID)
@@ -165,7 +294,15 @@ async function monitor() {
         send({ status: "active", delta: consumed, ...state.today })
         clearTimeout(idleTimer)
         idleTimer = setTimeout(() => send({ status: "idle", ...state.today }), 2_800)
-      }, controller.signal)
+      }
+
+      // SSE 在启动汇总之前连接；汇总期间到达的事件按原顺序补放，
+      // 避免短暂出现并被回答的 Question 永久丢失。
+      for (const event of queuedEvents) handleEvent(event)
+      queuedEvents.length = 0
+      ready = true
+      await stream
+      if (streamError) throw streamError
     } catch (error) {
       if (stopping) return
       if (controller.signal.reason === "day-rollover") {
@@ -185,13 +322,11 @@ async function monitor() {
 
 function createOverlay() {
   const { workArea } = screen.getPrimaryDisplay()
-  const width = 268
-  const height = 76
 
   overlay = new BrowserWindow({
-    width,
-    height,
-    x: Math.round(workArea.x + workArea.width - width - 28),
+    width: OVERLAY_WIDTH,
+    height: OVERLAY_HEIGHT,
+    x: Math.round(workArea.x + workArea.width - OVERLAY_WIDTH - 28),
     y: Math.round(workArea.y + 36),
     frame: false,
     transparent: true,
@@ -220,6 +355,13 @@ function createOverlay() {
   })
   overlay.on("closed", () => { overlay = undefined })
 }
+
+ipcMain.on("question-panel-state", (_event, state) => {
+  if (!overlay || overlay.isDestroyed()) return
+  const height = QUESTION_HEIGHTS[state]
+  if (!height) return
+  overlay.setSize(OVERLAY_WIDTH, height, true)
+})
 
 app.whenReady().then(() => {
   if (process.platform === "darwin") app.dock.hide()

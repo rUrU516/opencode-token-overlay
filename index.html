@@ -25,6 +25,107 @@
       }
       .overlay.disconnected { filter: grayscale(1); opacity: .58; }
 
+      .question-panel {
+        position: absolute;
+        z-index: 30;
+        left: 8px;
+        top: 55px;
+        width: 248px;
+        color: #ede9d8;
+        filter: drop-shadow(3px 4px 0 rgba(10,9,15,.52));
+        -webkit-app-region: no-drag;
+      }
+      .question-panel[hidden] { display: none; }
+      .question-shell {
+        overflow: hidden;
+        border: 3px solid #17151e;
+        background: #3d354a;
+        box-shadow: inset 0 3px 0 #806d86, inset 0 -3px 0 #211e2a, inset 0 0 0 2px #0e1016, 3px 3px 0 #100e16;
+        clip-path: polygon(4px 0,calc(100% - 4px) 0,calc(100% - 4px) 2px,100% 2px,100% calc(100% - 4px),calc(100% - 4px) calc(100% - 4px),calc(100% - 4px) 100%,4px 100%,4px calc(100% - 2px),0 calc(100% - 2px),0 4px,4px 4px);
+      }
+      .question-toggle {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        height: 17px;
+        padding: 1px 7px 0;
+        border: 0;
+        color: #d9b85f;
+        background: #292531;
+        cursor: pointer;
+        font: 400 7px/1 "Press Start 2P", monospace;
+        text-shadow: 1px 1px 0 #17151e;
+      }
+      .question-toggle:hover { background: #332e3c; }
+      .question-status[data-status="waiting"] { color: #ffe475; }
+      .question-status[data-status="answered"] { color: #77df88; }
+      .question-status[data-status="rejected"] { color: #ff766b; }
+      .question-chevron { transition: transform .12s steps(2); }
+      .question-panel.collapsed .question-chevron { transform: rotate(180deg); }
+      .question-content {
+        position: relative;
+        height: 190px;
+        overflow: auto;
+        padding: 9px 9px 11px;
+        border-top: 2px solid #17151e;
+        background:
+          repeating-linear-gradient(0deg,transparent 0 3px,rgba(5,5,9,.18) 3px 4px),
+          #1b1c25;
+        scrollbar-width: none;
+      }
+      .question-content::-webkit-scrollbar { display: none; }
+      .question-panel.collapsed .question-content { display: none; }
+      .question-meta {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 7px;
+        color: #858998;
+        font: 8px/1.35 Monaco, monospace;
+      }
+      .question-block + .question-block { margin-top: 10px; padding-top: 9px; border-top: 1px solid #383a46; }
+      .question-header {
+        margin-bottom: 5px;
+        color: #e4c85d;
+        font: 400 7px/1.35 "Press Start 2P", monospace;
+      }
+      .question-text {
+        color: #f1eddf;
+        font: 10px/1.45 Monaco, "SFMono-Regular", monospace;
+        user-select: text;
+      }
+      .question-options { display: flex; flex-direction: column; gap: 5px; margin-top: 8px; }
+      .question-option {
+        display: flex;
+        align-items: flex-start;
+        gap: 7px;
+        width: 100%;
+        padding: 6px 7px;
+        border: 1px solid #4a4c58;
+        color: #b9bdc8;
+        background: #252731;
+        font: 9px/1.25 Monaco, monospace;
+      }
+      .question-option.selected { border-color: #58c96c; color: #d2f5d8; background: #203127; }
+      .question-option.custom { border-style: dashed; color: #a4a8b4; }
+      .question-option-index { flex: 0 0 15px; color: #d9b85f; }
+      .question-option-main { min-width: 0; }
+      .question-option-label { display: block; color: #e4e1d7; font-weight: 700; }
+      .question-option.selected .question-option-label { color: #9be6a7; }
+      .question-option-description { display: block; margin-top: 2px; color: #888d9b; font-size: 8px; line-height: 1.35; }
+      .question-answer {
+        margin-top: 7px;
+        padding: 6px 7px;
+        border-left: 3px solid #57c86c;
+        color: #b9eec1;
+        background: #1e3025;
+        font: 9px/1.45 Monaco, monospace;
+      }
+      .question-answer.rejected { border-color: #dd574f; color: #ffc1b9; background: #342124; }
+
       .hud {
         position: absolute;
         left: 6px;
@@ -241,7 +342,7 @@
       .close {
         position: absolute;
         left: 0;
-        bottom: 0;
+        top: 62px;
         z-index: 20;
         width: 14px;
         height: 14px;
@@ -316,6 +417,15 @@
         <i class="pixel p1"></i><i class="pixel p2"></i><i class="pixel p3"></i>
         <i class="pixel p4"></i><i class="pixel p5"></i><i class="pixel p6"></i>
       </div>
+      <aside class="question-panel" id="question-panel" hidden>
+        <div class="question-shell">
+          <button class="question-toggle" id="question-toggle" type="button" aria-expanded="true">
+            <span><span class="question-status" id="question-status" data-status="waiting">QUESTION</span> <span id="question-count"></span></span>
+            <span class="question-chevron">▲</span>
+          </button>
+          <div class="question-content" id="question-content"></div>
+        </div>
+      </aside>
     </section>
     <script src="renderer.js"></script>
   </body>
