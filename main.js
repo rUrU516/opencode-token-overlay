@@ -11,7 +11,7 @@ const OVERLAY_HEIGHT = 76
 const QUESTION_HEIGHTS = {
   hidden: OVERLAY_HEIGHT,
   collapsed: 86,
-  expanded: 280,
+  expanded: 340,
 }
 
 const empty = () => ({ input: 0, cache: 0, cacheRead: 0, cacheWrite: 0, output: 0, cost: 0 })
