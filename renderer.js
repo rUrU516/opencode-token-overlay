@@ -23,6 +23,7 @@ let burstTimer
 let questionCollapsed = false
 const pendingQuestions = new Map()
 let currentQuestion
+let questionDismissTimer
 
 const chipColors = ["#8f4939", "#a95b3e", "#d56f40", "#ed9847", "#f0c65a", "#f4dc73"]
 
@@ -97,6 +98,7 @@ function renderQuestion() {
 }
 
 function showQuestion(update) {
+  clearTimeout(questionDismissTimer)
   if (update.type === "sync") {
     pendingQuestions.clear()
     for (const request of update.requests ?? []) pendingQuestions.set(request.id, request)
@@ -117,6 +119,14 @@ function showQuestion(update) {
     questionCollapsed = false
   }
   renderQuestion()
+
+  if (update.type === "replied") {
+    questionDismissTimer = setTimeout(() => {
+      const request = [...pendingQuestions.values()].at(-1)
+      currentQuestion = request ? { status: "waiting", request, requestID: request.id } : undefined
+      renderQuestion()
+    }, 5_000)
+  }
 }
 
 questionToggle.addEventListener("click", () => {
