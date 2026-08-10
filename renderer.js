@@ -97,33 +97,48 @@ function renderQuestion() {
   window.tokenMonitor.setQuestionPanelState(questionCollapsed ? "collapsed" : "expanded")
 }
 
+function oldestPendingQuestion() {
+  const request = pendingQuestions.values().next().value
+  return request ? { status: "waiting", request, requestID: request.id } : undefined
+}
+
 function showQuestion(update) {
   clearTimeout(questionDismissTimer)
   if (update.type === "sync") {
     pendingQuestions.clear()
     for (const request of update.requests ?? []) pendingQuestions.set(request.id, request)
-    const request = [...pendingQuestions.values()].at(-1)
-    currentQuestion = request ? { status: "waiting", request, requestID: request.id } : undefined
+    currentQuestion = oldestPendingQuestion()
   } else if (update.type === "asked") {
     pendingQuestions.set(update.request.id, update.request)
-    currentQuestion = { status: "waiting", request: update.request, requestID: update.request.id }
-    questionCollapsed = false
-  } else if (update.type === "replied" || update.type === "rejected") {
-    pendingQuestions.delete(update.requestID)
-    currentQuestion = {
-      status: update.type === "replied" ? "answered" : "rejected",
-      request: update.request,
-      requestID: update.requestID,
-      answers: update.answers,
+    // 新请求只进入队尾，不打断当前正在展示的旧问题。
+    if (!currentQuestion || currentQuestion.status !== "waiting") {
+      currentQuestion = oldestPendingQuestion()
+      questionCollapsed = false
     }
-    questionCollapsed = false
+  } else if (update.type === "replied" || update.type === "rejected") {
+    const currentResolved = currentQuestion?.status === "waiting" && currentQuestion.requestID === update.requestID
+    pendingQuestions.delete(update.requestID)
+    // 其他客户端处理了队列中的非当前问题时，只从队列移除，不抢占当前内容。
+    if (currentResolved) {
+      if (pendingQuestions.size > 0) {
+        // 有积压时跳过 5 秒结果页，立即展示最旧的下一条。
+        currentQuestion = oldestPendingQuestion()
+      } else {
+        currentQuestion = {
+          status: update.type === "replied" ? "answered" : "rejected",
+          request: update.request,
+          requestID: update.requestID,
+          answers: update.answers,
+        }
+      }
+      questionCollapsed = false
+    }
   }
   renderQuestion()
 
-  if (update.type === "replied") {
+  if (update.type === "replied" && currentQuestion?.status === "answered") {
     questionDismissTimer = setTimeout(() => {
-      const request = [...pendingQuestions.values()].at(-1)
-      currentQuestion = request ? { status: "waiting", request, requestID: request.id } : undefined
+      currentQuestion = oldestPendingQuestion()
       renderQuestion()
     }, 5_000)
   }
