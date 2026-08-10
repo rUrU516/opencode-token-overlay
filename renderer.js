@@ -21,9 +21,9 @@ let previousFrame
 let previousBar
 let burstTimer
 let questionCollapsed = false
-const pendingQuestions = new Map()
-let currentQuestion
-let questionDismissTimer
+const pendingInteractions = new Map()
+let currentInteraction
+let interactionDismissTimer
 
 const chipColors = ["#8f4939", "#a95b3e", "#d56f40", "#ed9847", "#f0c65a", "#f4dc73"]
 
@@ -50,6 +50,7 @@ const escapeHTML = (value) => String(value ?? "").replace(/[&<>'"]/g, (character
 })[character])
 
 const questionDrafts = new Map()
+const permissionDrafts = new Map()
 
 function draftFor(request) {
   let draft = questionDrafts.get(request.id)
@@ -64,6 +65,14 @@ function draftFor(request) {
     error: "",
   }
   questionDrafts.set(request.id, draft)
+  return draft
+}
+
+function permissionDraftFor(request) {
+  let draft = permissionDrafts.get(request.id)
+  if (draft) return draft
+  draft = { submitting: false, sent: false, error: "" }
+  permissionDrafts.set(request.id, draft)
   return draft
 }
 
@@ -151,26 +160,76 @@ function editorHTML(request, draft) {
     <div class="question-actions"><button class="question-button danger" data-action="reject">DISMISS</button><div class="question-actions-right">${index > 0 ? '<button class="question-button" data-action="back">BACK</button>' : ""}<button class="question-button primary" data-action="next"${answered ? "" : " disabled"}>${index === questions.length - 1 ? "REVIEW" : "NEXT"}</button></div></div>`
 }
 
+function permissionDetailsHTML(request) {
+  const action = String(request.action || "unknown action").replaceAll("_", " ")
+  const summary = request.action === "external_directory"
+    ? "REQUIRES ACCESS TO EXTERNAL DIRECTORY"
+    : `REQUIRES PERMISSION: ${action.toUpperCase()}`
+  const resources = (request.resources ?? []).map((resource) => `<div class="permission-resource">${escapeHTML(resource)}</div>`).join("")
+  const saved = (request.save ?? []).map((resource) => `<div class="permission-save">${escapeHTML(resource)}</div>`).join("")
+  const metadata = request.metadata && Object.keys(request.metadata).length
+    ? `<details class="permission-details"><summary>METADATA</summary><pre>${escapeHTML(JSON.stringify(request.metadata, null, 2))}</pre></details>`
+    : ""
+  const source = request.source
+    ? `<details class="permission-details"><summary>SOURCE</summary><div class="permission-source">MESSAGE ${escapeHTML(request.source.messageID)}<br />TOOL ${escapeHTML(request.source.id)}</div></details>`
+    : ""
+  return `<div class="permission-request"><div class="permission-action">${escapeHTML(summary)}</div>${resources || '<div class="permission-empty">No resource details</div>'}</div>
+    ${saved ? `<div class="permission-section"><div class="question-header">ALWAYS ALLOW RULES</div>${saved}</div>` : ""}
+    ${metadata}${source}`
+}
+
+function permissionHTML(request, draft) {
+  if (draft.submitting) {
+    return `<div class="question-sending">${draft.sent ? "SENT TO V2" : "SENDING..."}<br />PLEASE WAIT</div>${draft.error ? `<div class="question-error">${escapeHTML(draft.error)}</div>` : ""}`
+  }
+  return `${permissionDetailsHTML(request)}
+    ${draft.error ? `<div class="question-error">${escapeHTML(draft.error)}</div>` : ""}
+    <div class="question-actions permission-actions"><button class="question-button danger" data-permission-reply="reject">REJECT</button><button class="question-button primary" data-permission-reply="once">ONCE</button><button class="question-button always" data-permission-reply="always">ALWAYS</button></div>`
+}
+
+function permissionResultHTML(request, status, reply) {
+  const result = status === "rejected" || reply === "reject"
+    ? "PERMISSION REJECTED"
+    : reply === "always"
+      ? "ALWAYS ALLOWED"
+      : "ALLOWED ONCE"
+  return `${permissionDetailsHTML(request)}<div class="question-answer${status === "rejected" ? " rejected" : ""}">${result}</div>`
+}
+
 function renderQuestion() {
-  if (!currentQuestion) {
+  if (!currentInteraction) {
     questionPanel.hidden = true
     window.tokenMonitor.setQuestionPanelState("hidden")
     return
   }
 
-  const { status, request, answers, requestID } = currentQuestion
+  const { status, request, answers, requestID, reply } = currentInteraction
+  const kind = request?.kind ?? "question"
   questionPanel.hidden = false
+  questionPanel.dataset.kind = kind
   questionPanel.classList.toggle("collapsed", questionCollapsed)
   questionToggle.setAttribute("aria-expanded", String(!questionCollapsed))
   questionStatus.dataset.status = status
-  const draft = status === "waiting" && request ? draftFor(request) : undefined
-  questionStatus.textContent = status === "waiting" ? (draft?.submitting ? "SENDING" : draft?.confirm ? "CONFIRM" : "QUESTION") : status === "answered" ? "ANSWERED" : "REJECTED"
-  const progress = draft && request.questions.length > 1 ? ` · ${Math.min(draft.page + 1, request.questions.length)}/${request.questions.length}` : ""
-  questionCount.textContent = `${progress}${pendingQuestions.size > 0 ? ` · Q:${pendingQuestions.size}` : ""}`
+  const draft = status === "waiting" && request
+    ? kind === "permission" ? permissionDraftFor(request) : draftFor(request)
+    : undefined
+  questionStatus.textContent = status === "waiting"
+    ? draft?.submitting ? "SENDING" : kind === "permission" ? "PERMISSION" : draft?.confirm ? "CONFIRM" : "QUESTION"
+    : status === "answered" ? "ANSWERED" : "REJECTED"
+  const progress = kind === "question" && draft && request.questions.length > 1 ? ` · ${Math.min(draft.page + 1, request.questions.length)}/${request.questions.length}` : ""
+  const counts = [...pendingInteractions.values()].reduce((value, item) => {
+    value[item.kind === "permission" ? "permission" : "question"] += 1
+    return value
+  }, { question: 0, permission: 0 })
+  const queue = [counts.question ? `Q:${counts.question}` : "", counts.permission ? `P:${counts.permission}` : ""].filter(Boolean).join(" · ")
+  questionCount.textContent = `${progress}${queue ? ` · ${queue}` : ""}`
   const content = status === "waiting" && request
-    ? editorHTML(request, draft)
-    : readonlyBlocks(request, status, answers) || `<section class="question-block"><div class="question-text">${escapeHTML(requestID ?? "QUESTION UPDATED")}</div></section>`
-  questionContent.innerHTML = `<div class="question-meta"><span>${escapeHTML(request?.sessionID ?? "SESSION UNKNOWN")}</span><span>${request?.questions?.length ?? 1} ITEM${request?.questions?.length === 1 ? "" : "S"}</span></div>${content}`
+    ? kind === "permission" ? permissionHTML(request, draft) : editorHTML(request, draft)
+    : kind === "permission" && request
+      ? permissionResultHTML(request, status, reply)
+      : readonlyBlocks(request, status, answers) || `<section class="question-block"><div class="question-text">${escapeHTML(requestID ?? "INTERACTION UPDATED")}</div></section>`
+  const itemCount = kind === "permission" ? `${request?.resources?.length ?? 0} RESOURCE${request?.resources?.length === 1 ? "" : "S"}` : `${request?.questions?.length ?? 1} ITEM${request?.questions?.length === 1 ? "" : "S"}`
+  questionContent.innerHTML = `<div class="question-meta"><span>${escapeHTML(request?.sessionID ?? "SESSION UNKNOWN")}</span><span>${itemCount}</span></div>${content}`
   window.tokenMonitor.setQuestionPanelState(questionCollapsed ? "collapsed" : "expanded")
 }
 
@@ -211,9 +270,31 @@ async function rejectQuestion(request, draft) {
   }
 }
 
+async function submitPermission(request, draft, reply) {
+  draft.submitting = true
+  draft.error = ""
+  renderQuestion()
+  try {
+    await window.tokenMonitor.replyPermission({ sessionID: request.sessionID, requestID: request.id, reply })
+    draft.sent = true
+    renderQuestion()
+  } catch (error) {
+    draft.submitting = false
+    draft.error = error?.message ?? String(error)
+    renderQuestion()
+  }
+}
+
 questionContent.addEventListener("click", (event) => {
-  const request = currentQuestion?.status === "waiting" ? currentQuestion.request : undefined
+  const request = currentInteraction?.status === "waiting" ? currentInteraction.request : undefined
   if (!request) return
+  if (request.kind === "permission") {
+    const reply = event.target.closest("[data-permission-reply]")?.dataset.permissionReply
+    if (!reply) return
+    const draft = permissionDraftFor(request)
+    if (!draft.submitting) void submitPermission(request, draft, reply)
+    return
+  }
   const draft = draftFor(request)
   if (draft.submitting) return
   const question = request.questions[draft.page]
@@ -258,8 +339,8 @@ questionContent.addEventListener("click", (event) => {
 
 questionContent.addEventListener("input", (event) => {
   if (!event.target.matches("[data-custom]")) return
-  const request = currentQuestion?.status === "waiting" ? currentQuestion.request : undefined
-  if (!request) return
+  const request = currentInteraction?.status === "waiting" ? currentInteraction.request : undefined
+  if (!request || request.kind === "permission") return
   const draft = draftFor(request)
   const question = request.questions[draft.page]
   draft.custom[draft.page] = event.target.value
@@ -271,39 +352,41 @@ questionContent.addEventListener("input", (event) => {
   if (next) next.disabled = valuesFor(draft, question, draft.page).length === 0
 })
 
-function oldestPendingQuestion() {
-  const request = pendingQuestions.values().next().value
+function oldestPendingInteraction() {
+  const request = pendingInteractions.values().next().value
   return request ? { status: "waiting", request, requestID: request.id } : undefined
 }
 
-function showQuestion(update) {
-  clearTimeout(questionDismissTimer)
+function showInteraction(update) {
+  clearTimeout(interactionDismissTimer)
   if (update.type === "sync") {
-    pendingQuestions.clear()
-    for (const request of update.requests ?? []) pendingQuestions.set(request.id, request)
-    currentQuestion = oldestPendingQuestion()
+    pendingInteractions.clear()
+    for (const request of update.requests ?? []) pendingInteractions.set(request.id, request)
+    currentInteraction = oldestPendingInteraction()
   } else if (update.type === "asked") {
-    pendingQuestions.set(update.request.id, update.request)
+    pendingInteractions.set(update.request.id, update.request)
     // 新请求只进入队尾，不打断当前正在展示的旧问题。
-    if (!currentQuestion || currentQuestion.status !== "waiting") {
-      currentQuestion = oldestPendingQuestion()
+    if (!currentInteraction || currentInteraction.status !== "waiting") {
+      currentInteraction = oldestPendingInteraction()
       questionCollapsed = false
     }
   } else if (update.type === "replied" || update.type === "rejected") {
-    const currentResolved = currentQuestion?.status === "waiting" && currentQuestion.requestID === update.requestID
-    pendingQuestions.delete(update.requestID)
+    const currentResolved = currentInteraction?.status === "waiting" && currentInteraction.requestID === update.requestID
+    pendingInteractions.delete(update.requestID)
     questionDrafts.delete(update.requestID)
+    permissionDrafts.delete(update.requestID)
     // 其他客户端处理了队列中的非当前问题时，只从队列移除，不抢占当前内容。
     if (currentResolved) {
-      if (pendingQuestions.size > 0) {
+      if (pendingInteractions.size > 0) {
         // 有积压时跳过 5 秒结果页，立即展示最旧的下一条。
-        currentQuestion = oldestPendingQuestion()
+        currentInteraction = oldestPendingInteraction()
       } else {
-        currentQuestion = {
+        currentInteraction = {
           status: update.type === "replied" ? "answered" : "rejected",
           request: update.request,
           requestID: update.requestID,
           answers: update.answers,
+          reply: update.reply,
         }
       }
       questionCollapsed = false
@@ -311,9 +394,9 @@ function showQuestion(update) {
   }
   renderQuestion()
 
-  if (update.type === "replied" && currentQuestion?.status === "answered") {
-    questionDismissTimer = setTimeout(() => {
-      currentQuestion = oldestPendingQuestion()
+  if ((update.type === "replied" || update.type === "rejected") && ["answered", "rejected"].includes(currentInteraction?.status)) {
+    interactionDismissTimer = setTimeout(() => {
+      currentInteraction = oldestPendingInteraction()
       renderQuestion()
     }, 5_000)
   }
@@ -324,7 +407,7 @@ questionToggle.addEventListener("click", () => {
   renderQuestion()
 })
 
-window.tokenMonitor.onQuestion(showQuestion)
+window.tokenMonitor.onQuestion(showInteraction)
 
 const total = (value) => value.input + value.cache + value.output
 

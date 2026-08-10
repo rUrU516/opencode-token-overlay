@@ -16,4 +16,7 @@ contextBridge.exposeInMainWorld("tokenMonitor", {
   rejectQuestion(payload) {
     return ipcRenderer.invoke("question-reject", payload)
   },
+  replyPermission(payload) {
+    return ipcRenderer.invoke("permission-reply", payload)
+  },
 })

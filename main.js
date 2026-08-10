@@ -133,6 +133,7 @@ async function bootstrap(endpoint) {
 function questionFromForm(form) {
   if (form.metadata?.kind !== "question") return
   return {
+    kind: "question",
     id: form.id,
     sessionID: form.sessionID,
     protocol: "form",
@@ -155,7 +156,11 @@ function questionFromForm(form) {
 }
 
 function questionFromLegacy(request) {
-  return { ...request, protocol: "question" }
+  return { ...request, kind: "question", protocol: "question" }
+}
+
+function permissionRequest(request) {
+  return { ...request, kind: "permission" }
 }
 
 function formAnswers(request, answer = {}) {
@@ -166,16 +171,11 @@ function formAnswers(request, answer = {}) {
   })
 }
 
-async function bootstrapQuestions(endpoint) {
-  let locations
-  try {
-    locations = await json(endpoint, "/api/debug/location")
-  } catch {
-    locations = []
-  }
+async function bootstrapInteractions(endpoint) {
+  let locations = await json(endpoint, "/api/debug/location")
   if (!locations.length) locations = [undefined]
 
-  const pages = await Promise.allSettled(locations.flatMap((location) => {
+  const pages = await Promise.all(locations.flatMap((location) => {
     const query = new URLSearchParams()
     if (location?.directory) query.set("location[directory]", location.directory)
     if (location?.workspaceID) query.set("location[workspace]", location.workspaceID)
@@ -183,14 +183,18 @@ async function bootstrapQuestions(endpoint) {
     return [
       json(endpoint, `/api/question/request${suffix}`).then((page) => ({ kind: "question", page })),
       json(endpoint, `/api/form/request${suffix}`).then((page) => ({ kind: "form", page })),
+      json(endpoint, `/api/permission/request${suffix}`).then((page) => ({ kind: "permission", page })),
     ]
   }))
 
   const requests = new Map()
   for (const result of pages) {
-    if (result.status !== "fulfilled") continue
-    for (const item of result.value.page.data ?? []) {
-      const request = result.value.kind === "form" ? questionFromForm(item) : questionFromLegacy(item)
+    for (const item of result.page.data ?? []) {
+      const request = result.kind === "form"
+        ? questionFromForm(item)
+        : result.kind === "permission"
+          ? permissionRequest(item)
+          : questionFromLegacy(item)
       if (request) requests.set(request.id, request)
     }
   }
@@ -234,12 +238,12 @@ async function monitor() {
         if (!ready) queuedEvents.push(event)
         else handleEvent(event)
       }, controller.signal).catch((error) => { streamError = error })
-      const [state, questionRequests] = await Promise.all([
+      const [state, interactionRequests] = await Promise.all([
         bootstrap(endpoint),
-        bootstrapQuestions(endpoint),
+        bootstrapInteractions(endpoint),
       ])
       send({ status: "idle", ...state.today })
-      sendQuestion({ type: "sync", requests: [...questionRequests.values()] })
+      sendQuestion({ type: "sync", requests: [...interactionRequests.values()] })
       retry = 1_000
 
       // 跨过本地零点后重新汇总当天消息。不能只等待 Usage 事件，
@@ -252,47 +256,64 @@ async function monitor() {
         if (event.type === "form.created") {
           const request = questionFromForm(event.data.form)
           if (!request) return
-          questionRequests.set(request.id, request)
-          sendQuestion({ type: "asked", request, pending: questionRequests.size })
+          interactionRequests.set(request.id, request)
+          sendQuestion({ type: "asked", request, pending: interactionRequests.size })
           return
         }
         if (event.type === "form.replied") {
-          const request = questionRequests.get(event.data.id)
+          const request = interactionRequests.get(event.data.id)
           if (!request) return
-          questionRequests.delete(event.data.id)
+          interactionRequests.delete(event.data.id)
           sendQuestion({
             type: "replied",
             request,
             requestID: event.data.id,
             sessionID: event.data.sessionID,
             answers: formAnswers(request, event.data.answer),
-            pending: questionRequests.size,
+            pending: interactionRequests.size,
           })
           return
         }
         if (event.type === "form.cancelled") {
-          const request = questionRequests.get(event.data.id)
+          const request = interactionRequests.get(event.data.id)
           if (!request) return
-          questionRequests.delete(event.data.id)
-          sendQuestion({ type: "rejected", request, requestID: event.data.id, sessionID: event.data.sessionID, pending: questionRequests.size })
+          interactionRequests.delete(event.data.id)
+          sendQuestion({ type: "rejected", request, requestID: event.data.id, sessionID: event.data.sessionID, pending: interactionRequests.size })
           return
         }
         if (event.type === "question.asked") {
           const request = questionFromLegacy(event.data)
-          questionRequests.set(request.id, request)
-          sendQuestion({ type: "asked", request, pending: questionRequests.size })
+          interactionRequests.set(request.id, request)
+          sendQuestion({ type: "asked", request, pending: interactionRequests.size })
           return
         }
         if (event.type === "question.replied") {
-          const request = questionRequests.get(event.data.requestID)
-          questionRequests.delete(event.data.requestID)
-          sendQuestion({ type: "replied", request, ...event.data, pending: questionRequests.size })
+          const request = interactionRequests.get(event.data.requestID)
+          interactionRequests.delete(event.data.requestID)
+          sendQuestion({ type: "replied", request, ...event.data, pending: interactionRequests.size })
           return
         }
         if (event.type === "question.rejected") {
-          const request = questionRequests.get(event.data.requestID)
-          questionRequests.delete(event.data.requestID)
-          sendQuestion({ type: "rejected", request, ...event.data, pending: questionRequests.size })
+          const request = interactionRequests.get(event.data.requestID)
+          interactionRequests.delete(event.data.requestID)
+          sendQuestion({ type: "rejected", request, ...event.data, pending: interactionRequests.size })
+          return
+        }
+        if (event.type === "permission.asked") {
+          const request = permissionRequest(event.data)
+          interactionRequests.set(request.id, request)
+          sendQuestion({ type: "asked", request, pending: interactionRequests.size })
+          return
+        }
+        if (event.type === "permission.replied") {
+          const request = interactionRequests.get(event.data.requestID)
+          interactionRequests.delete(event.data.requestID)
+          sendQuestion({
+            type: event.data.reply === "reject" ? "rejected" : "replied",
+            request,
+            ...event.data,
+            pending: interactionRequests.size,
+          })
           return
         }
         if (event.type !== "session.usage.updated") return
@@ -418,6 +439,18 @@ ipcMain.handle("question-reject", async (event, payload) => {
     return
   }
   throw new Error("Unsupported question protocol")
+})
+
+ipcMain.handle("permission-reply", async (event, payload) => {
+  if (!trustedRenderer(event)) throw new Error("Untrusted renderer")
+  if (!["once", "always", "reject"].includes(payload.reply)) throw new Error("Unsupported permission reply")
+  const endpoint = await service()
+  const sessionID = encodeURIComponent(payload.sessionID)
+  const requestID = encodeURIComponent(payload.requestID)
+  await mutate(endpoint, `/api/session/${sessionID}/permission/${requestID}/reply`, {
+    reply: payload.reply,
+    ...(payload.message ? { message: payload.message } : {}),
+  })
 })
 
 app.whenReady().then(() => {

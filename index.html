@@ -176,6 +176,7 @@
       .question-button:hover:not(:disabled) { filter: brightness(1.15); }
       .question-button:disabled { cursor: default; opacity: .4; }
       .question-button.primary { color: #101511; background: #59cb6c; box-shadow: inset 0 2px #9aefa6, 2px 2px #132017; }
+      .question-button.always { color: #211a08; background: #dfbd4f; box-shadow: inset 0 2px #ffe483, 2px 2px #211a0b; }
       .question-button.danger { color: #ffd0c9; background: #793d43; box-shadow: inset 0 2px #b76868, 2px 2px #211014; }
       .question-summary { display: flex; flex-direction: column; gap: 7px; }
       .question-summary-item { padding: 7px; border: 1px solid #3c3f49; background: #242630; }
@@ -183,6 +184,49 @@
       .question-summary-answer { margin-top: 5px; color: #c9eecf; font: 11px/1.45 Monaco, monospace; overflow-wrap: anywhere; }
       .question-error { margin-top: 7px; color: #ff8a7f; font: 10px/1.45 Monaco, monospace; }
       .question-sending { display: grid; min-height: 130px; place-items: center; color: #f2d762; font: 8px/1.8 "Press Start 2P", monospace; text-align: center; }
+      .question-panel[data-kind="permission"] .question-toggle { color: #ffcf62; background: #332a28; }
+      .permission-request {
+        padding: 9px;
+        border: 2px solid #9d7136;
+        background: #34291f;
+        box-shadow: inset 0 0 0 2px #1d1918;
+      }
+      .permission-action {
+        color: #ffe39a;
+        font: 9px/1.5 "Press Start 2P", monospace;
+        overflow-wrap: anywhere;
+      }
+      .permission-section { margin-top: 11px; }
+      .permission-resource,
+      .permission-save {
+        margin-top: 5px;
+        padding: 7px 8px;
+        border-left: 3px solid #d89a47;
+        color: #f2eee2;
+        background: #272630;
+        font: 11px/1.5 Monaco, "SFMono-Regular", monospace;
+        overflow-wrap: anywhere;
+        user-select: text;
+      }
+      .permission-request .permission-resource {
+        margin-top: 8px;
+        padding: 7px 0 0 8px;
+        background: transparent;
+      }
+      .permission-save { border-left-color: #d3bd57; color: #e9dda4; background: #302d23; }
+      .permission-empty { color: #8d919d; font: 10px/1.45 Monaco, monospace; }
+      .permission-details {
+        margin-top: 9px;
+        border: 1px solid #41434e;
+        color: #aeb2bd;
+        background: #20222a;
+        font: 10px/1.45 Monaco, monospace;
+      }
+      .permission-details summary { padding: 6px 7px; color: #c6a955; cursor: pointer; font-weight: 700; }
+      .permission-details pre,
+      .permission-source { margin: 0; padding: 0 7px 7px; white-space: pre-wrap; overflow-wrap: anywhere; user-select: text; }
+      .permission-actions { justify-content: stretch; }
+      .permission-actions .question-button { flex: 1; padding-left: 4px; padding-right: 4px; }
 
       .hud {
         position: absolute;
