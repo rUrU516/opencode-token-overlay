@@ -17,6 +17,7 @@ const questionContent = document.querySelector("#question-content")
 // UI 每秒最多推进 10K Token。真实目标值始终完整保留，不会丢失用量。
 const MAX_TOKENS_PER_SECOND = 10_000
 const FINAL_CATCH_UP_MILLISECONDS = 3_000
+const BURST_RETURN_MILLISECONDS = 1_200
 const TOKENS_PER_BAR = 100_000
 let shown
 let target
@@ -32,6 +33,7 @@ let frameID
 let previousFrame
 let previousBar
 let burstTimer
+let bursting = false
 let questionCollapsed = false
 const pendingInteractions = new Map()
 let currentInteraction
@@ -525,15 +527,17 @@ function paint(value) {
 }
 
 function triggerBurst() {
+  bursting = true
   overlay.classList.remove("burst")
   void overlay.offsetWidth
   overlay.classList.add("burst")
   syncTokenRunner()
   clearTimeout(burstTimer)
   burstTimer = setTimeout(() => {
+    bursting = false
     overlay.classList.remove("burst")
     syncTokenRunner()
-  }, 580)
+  }, BURST_RETURN_MILLISECONDS)
 }
 
 function createThemeJourney() {
@@ -594,6 +598,12 @@ function advance(now) {
   // 服务端发生回退/修正时立即对齐；限速只应用于正向 Token 消耗。
   for (const key of ["input", "cache", "output"]) {
     if (target[key] < shown[key]) shown[key] = target[key]
+  }
+  // 爆满回吹期间冻结显示值；真实目标仍可继续增长，落地后再恢复追赶。
+  if (bursting) {
+    previousFrame = now
+    frameID = requestAnimationFrame(advance)
+    return
   }
   const remaining = Math.max(0, total(target) - total(shown))
   if (remaining <= .5) {

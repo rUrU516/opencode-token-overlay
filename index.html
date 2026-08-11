@@ -413,7 +413,7 @@
       .overlay:not(.active):not(.burst) .token-runner { filter: brightness(.84) saturate(.8); }
       .active .token-runner { filter: brightness(1.12) saturate(1.12); }
       .critical .token-runner { filter: brightness(1.55) saturate(1.25); }
-      .burst .token-runner { animation: runnerReset .58s steps(10) both; }
+      .burst .token-runner { animation: runnerReset 1.2s steps(20) both; }
 
       .runner-wind {
         position: absolute;
@@ -498,7 +498,7 @@
         opacity: 0;
         transform: rotate(7deg) scale(.4);
       }
-      .burst .max { animation: maxPop .52s steps(4); }
+      .burst .max { animation: maxPop 1.2s steps(8); }
 
       .pixel { position: absolute; z-index: 9; right: 5px; top: 27px; width: 6px; height: 6px; opacity: 0; background: var(--c,#fff36f); border: 1px solid #17151e; }
       .burst .pixel { animation: pixelBurst .54s steps(5); }
