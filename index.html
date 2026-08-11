@@ -15,6 +15,12 @@
       html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: transparent; }
       body { font-family: "Press Start 2P", Monaco, monospace; user-select: none; -webkit-font-smoothing: none; }
       .overlay {
+        --theme-hue: 132;
+        --energy-deep: hsl(var(--theme-hue) 58% 34%);
+        --energy-main: hsl(var(--theme-hue) 66% 47%);
+        --energy-bright: hsl(var(--theme-hue) 78% 64%);
+        --energy-flash: hsl(var(--theme-hue) 92% 76%);
+        --energy-shadow: hsl(var(--theme-hue) 48% 22%);
         position: relative;
         width: 100%;
         height: 100%;
@@ -29,7 +35,7 @@
         position: absolute;
         z-index: 30;
         left: 8px;
-        top: 55px;
+        top: 79px;
         width: 248px;
         color: #ede9d8;
         filter: drop-shadow(3px 4px 0 rgba(10,9,15,.52));
@@ -231,7 +237,7 @@
       .hud {
         position: absolute;
         left: 6px;
-        top: 6px;
+        top: 30px;
         width: 256px;
         height: 54px;
         filter: drop-shadow(3px 4px 0 rgba(10,9,15,.52));
@@ -282,8 +288,8 @@
         inset: 0 auto 0 0;
         width: 0;
         min-width: 2px;
-        background: linear-gradient(90deg,#35bd59 0 50%,#e3c83c 50% 74%,#e87932 74% 88%,#e84b42 88% 100%);
-        box-shadow: inset 0 4px rgba(255,255,210,.3), inset 0 -4px rgba(72,27,34,.3);
+        background: linear-gradient(90deg,var(--energy-deep) 0 48%,var(--energy-main) 48% 78%,var(--energy-bright) 78% 100%);
+        box-shadow: inset 0 4px rgba(255,255,240,.3), inset 0 -4px var(--energy-shadow);
         transition: width 50ms linear;
       }
       .bar-fill::after {
@@ -301,15 +307,15 @@
         width: 7px;
         height: 7px;
         opacity: 0;
-        background: #fff1a0;
+        background: var(--energy-flash);
         clip-path: polygon(43% 0,57% 0,57% 43%,100% 43%,100% 57%,57% 57%,57% 100%,43% 100%,43% 57%,0 57%,0 43%,43% 43%);
       }
       .active .bar-fill { filter: brightness(1.18) saturate(1.2); }
-      .critical .bar-fill { background: #fff36d; filter: brightness(1.6) saturate(1.25); }
+      .critical .bar-fill { background: linear-gradient(90deg,var(--energy-deep) 0 48%,var(--energy-main) 48% 78%,var(--energy-bright) 78% 100%); filter: brightness(1.6) saturate(1.25); }
       .critical .bar-shell { animation: criticalFlash .18s steps(2) infinite; }
       .active.critical .number { color: #fffca0; animation: criticalNumber .14s steps(2) infinite; }
       .active.critical .bar-track::after { background: rgba(255,255,210,.9); animation-duration: .22s; }
-      .critical .chip { background:#fff36d; animation-duration: .28s !important; }
+      .critical .chip { background:var(--energy-flash); animation-duration: .28s !important; }
       .overlay:not(.active):not(.disconnected):not(.burst) .bar-shell { animation: idleShellBreath 3.2s steps(4) infinite; }
       .overlay:not(.active):not(.disconnected):not(.burst) .bar-fill { animation: idleFillBreath 3.2s steps(4) infinite; }
       .overlay:not(.active):not(.disconnected):not(.burst) .number { animation: idleNumberBreath 3.2s steps(4) infinite; }
@@ -375,6 +381,38 @@
         text-shadow: 1px 1px 0 #17151e;
       }
 
+      .token-runner {
+        position: absolute;
+        z-index: 10;
+        left: var(--runner-x,9px);
+        bottom: 40px;
+        width: 31px;
+        height: 39px;
+        transform: translateX(-50%);
+        pointer-events: none;
+        will-change: left, transform;
+      }
+      .token-runner svg {
+        width: 31px;
+        height: 39px;
+        overflow: visible;
+        filter: drop-shadow(1px 1px 0 #0b0910);
+      }
+      .token-runner line {
+        stroke-width: 4.5;
+        stroke-linecap: square;
+        stroke-linejoin: miter;
+      }
+      .token-runner .runner-rear { stroke: var(--energy-deep); opacity: .72; }
+      .token-runner .runner-core { stroke: var(--energy-main); }
+      .token-runner .runner-front { stroke: var(--energy-bright); }
+      .token-runner .runner-head { fill: var(--energy-flash); stroke: #17151e; stroke-width: 3; }
+      .token-runner .runner-eye { fill: #17151e; }
+      .overlay:not(.active):not(.burst) .token-runner { filter: brightness(.84) saturate(.8); }
+      .active .token-runner { filter: brightness(1.12) saturate(1.12); }
+      .critical .token-runner { filter: brightness(1.55) saturate(1.25); }
+      .burst .token-runner { animation: runnerReset .58s steps(10) both; }
+
       .chips {
         position: absolute;
         z-index: 7;
@@ -392,8 +430,8 @@
         width: 9px;
         height: 3px;
         opacity: 0;
-        background: #ffd760;
-        box-shadow: 5px 5px #a9533c,-4px 9px #f08a45;
+        background: var(--energy-flash);
+        box-shadow: 5px 5px var(--energy-deep),-4px 9px var(--energy-bright);
       }
       .chip {
         position: absolute;
@@ -402,32 +440,32 @@
         width: var(--size,4px);
         height: var(--size,4px);
         opacity: 0;
-        background: var(--chip-color,#d58a46);
-        box-shadow: inset -1px -1px #6e3b35;
+        background: hsl(var(--theme-hue) 72% var(--chip-lightness,52%));
+        box-shadow: inset -1px -1px var(--energy-shadow);
       }
       .active:not(.burst) .bar-fill::before { animation: chipImpact .46s steps(3) infinite; }
       .active:not(.burst) .chips::after { animation: chipSlash .58s steps(4) infinite; }
       .active:not(.burst) .chip { animation: chipSpit .64s steps(5) infinite; }
       .chip.c1 { --x:-17px; --y:-25px; --size:5px; }
-      .chip.c2 { --x:15px; --y:-28px; --size:4px; --chip-color:#f0c65a; animation-delay:-.08s !important; }
-      .chip.c3 { --x:21px; --y:25px; --size:5px; --chip-color:#a95b3e; animation-delay:-.16s !important; }
-      .chip.c4 { --x:-14px; --y:29px; --size:4px; --chip-color:#df8145; animation-delay:-.24s !important; }
-      .chip.c5 { --x:9px; --y:-22px; --size:3px; --chip-color:#ffe17a; animation-delay:-.32s !important; }
-      .chip.c6 { --x:-23px; --y:20px; --size:3px; --chip-color:#8f4939; animation-delay:-.4s !important; }
-      .chip.c7 { --x:26px; --y:-18px; --size:3px; --chip-color:#ffb44e; animation-delay:-.48s !important; }
-      .chip.c8 { --x:19px; --y:31px; --size:4px; --chip-color:#f4dc73; animation-delay:-.56s !important; }
+      .chip.c2 { --x:15px; --y:-28px; --size:4px; animation-delay:-.08s !important; }
+      .chip.c3 { --x:21px; --y:25px; --size:5px; animation-delay:-.16s !important; }
+      .chip.c4 { --x:-14px; --y:29px; --size:4px; animation-delay:-.24s !important; }
+      .chip.c5 { --x:9px; --y:-22px; --size:3px; animation-delay:-.32s !important; }
+      .chip.c6 { --x:-23px; --y:20px; --size:3px; animation-delay:-.4s !important; }
+      .chip.c7 { --x:26px; --y:-18px; --size:3px; animation-delay:-.48s !important; }
+      .chip.c8 { --x:19px; --y:31px; --size:4px; animation-delay:-.56s !important; }
 
       .max {
         position: absolute;
         right: 1px;
         top: 0;
         z-index: 10;
-        color: #fff56d;
+        color: var(--energy-flash);
         font: 400 8px/1 "Press Start 2P", monospace;
         letter-spacing: -.08em;
         -webkit-text-stroke: 2px #17151e;
         paint-order: stroke fill;
-        text-shadow: 2px 2px #e8483e;
+        text-shadow: 2px 2px var(--energy-deep);
         opacity: 0;
         transform: rotate(7deg) scale(.4);
       }
@@ -435,21 +473,21 @@
 
       .pixel { position: absolute; z-index: 9; right: 5px; top: 27px; width: 6px; height: 6px; opacity: 0; background: var(--c,#fff36f); border: 1px solid #17151e; }
       .burst .pixel { animation: pixelBurst .54s steps(5); }
-      .p1 { --x:-28px; --y:-27px; }
-      .p2 { --x:13px; --y:-23px; --c:#ff654b; animation-delay:20ms !important; }
-      .p3 { --x:16px; --y:20px; --c:#54d66c; animation-delay:40ms !important; }
-      .p4 { --x:-24px; --y:24px; --c:#6fc9ff; animation-delay:60ms !important; }
-      .p5 { --x:1px; --y:-31px; --c:#fff5aa; animation-delay:30ms !important; }
-      .p6 { --x:-34px; --y:-2px; --c:#f0d64e; animation-delay:10ms !important; }
+      .p1 { --x:-28px; --y:-27px; --c:var(--energy-flash); }
+      .p2 { --x:13px; --y:-23px; --c:var(--energy-main); animation-delay:20ms !important; }
+      .p3 { --x:16px; --y:20px; --c:var(--energy-bright); animation-delay:40ms !important; }
+      .p4 { --x:-24px; --y:24px; --c:var(--energy-deep); animation-delay:60ms !important; }
+      .p5 { --x:1px; --y:-31px; --c:var(--energy-flash); animation-delay:30ms !important; }
+      .p6 { --x:-34px; --y:-2px; --c:var(--energy-bright); animation-delay:10ms !important; }
 
       .burst .hud { animation: overloadShake .1s steps(2) 5; }
       .burst .bar-shell { animation: barFlash .1s steps(2) 5; }
-      .burst .bar-fill { width: 100% !important; background: #fff36d; filter: brightness(1.6); }
+      .burst .bar-fill { width: 100% !important; background: var(--energy-flash); filter: brightness(1.6); }
 
       .close {
         position: absolute;
         left: 0;
-        top: 62px;
+        top: 86px;
         z-index: 20;
         width: 14px;
         height: 14px;
@@ -506,7 +544,12 @@
       @keyframes criticalNumber { 0%,100% { transform:translateX(0); } 50% { transform:translateX(1px); } }
       @keyframes pixelBurst { 0% { opacity:1; transform:translate(0,0) rotate(0); } 75% { opacity:1; } 100% { opacity:0; transform:translate(var(--x),var(--y)) rotate(180deg); } }
       @keyframes overloadShake { 0% { transform:translate(-2px,1px); } 100% { transform:translate(2px,-1px); } }
-      @keyframes barFlash { 0% { background:#fff36d; } 100% { background:#ff5148; } }
+      @keyframes barFlash { 0% { background:var(--energy-flash); } 100% { background:var(--energy-deep); } }
+      @keyframes runnerReset {
+        0% { left:243px; transform:translateX(-50%) translateY(0) rotate(0); }
+        45% { transform:translateX(-50%) translateY(-26px) rotate(-180deg); }
+        100% { left:var(--runner-x,9px); transform:translateX(-50%) translateY(0) rotate(-360deg); }
+      }
     </style>
   </head>
   <body>
@@ -514,6 +557,14 @@
       <button class="close" aria-label="关闭" onclick="window.close()">×</button>
       <div class="hud">
         <div class="legend" id="cache-hit">HIT --.----%</div>
+        <div class="token-runner" aria-hidden="true">
+          <svg viewBox="0 0 58 72">
+            <g class="runner-rear"><line id="runner-arm-b-upper"/><line id="runner-arm-b-lower"/><line id="runner-leg-b-upper"/><line id="runner-leg-b-lower"/></g>
+            <line id="runner-torso" class="runner-core"/>
+            <g class="runner-front"><line id="runner-arm-a-upper"/><line id="runner-arm-a-lower"/><line id="runner-leg-a-upper"/><line id="runner-leg-a-lower"/></g>
+            <circle id="runner-head" class="runner-head" r="8"/><rect id="runner-eye" class="runner-eye" width="3" height="3"/>
+          </svg>
+        </div>
         <div class="bar-shell">
           <div class="bar-track"><div class="bar-fill" id="bar"></div></div>
         </div>

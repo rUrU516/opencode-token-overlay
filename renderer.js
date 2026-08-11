@@ -3,6 +3,9 @@ const totalElement = document.querySelector("#total")
 const barElement = document.querySelector("#bar")
 const cacheHitElement = document.querySelector("#cache-hit")
 const hudElement = document.querySelector(".hud")
+const runnerBones = Object.fromEntries([...document.querySelectorAll(".token-runner line")].map((element) => [element.id, element]))
+const runnerHead = document.querySelector("#runner-head")
+const runnerEye = document.querySelector("#runner-eye")
 const chipElements = [...document.querySelectorAll(".chip")]
 const questionPanel = document.querySelector("#question-panel")
 const questionToggle = document.querySelector("#question-toggle")
@@ -19,6 +22,11 @@ let target
 let connectionStatus = "connecting"
 let sessionsBusy = false
 let catchUpDeadline
+let themeHue = 132
+let themeFrameID
+let previousThemeFrame
+let themeJourney
+let runnerFrameID
 let frameID
 let previousFrame
 let previousBar
@@ -28,15 +36,83 @@ const pendingInteractions = new Map()
 let currentInteraction
 let interactionDismissTimer
 
-const chipColors = ["#8f4939", "#a95b3e", "#d56f40", "#ed9847", "#f0c65a", "#f4dc73"]
-
 function randomizeChip(chip) {
   const direction = Math.random() < .5 ? -1 : 1
   chip.style.setProperty("--x", `${Math.round(-26 + Math.random() * 54)}px`)
   chip.style.setProperty("--y", `${direction * Math.round(20 + Math.random() * 13)}px`)
   chip.style.setProperty("--size", `${2 + Math.floor(Math.random() * 4)}px`)
   chip.style.setProperty("--spin", `${[90,180,270][Math.floor(Math.random() * 3)]}deg`)
-  chip.style.setProperty("--chip-color", chipColors[Math.floor(Math.random() * chipColors.length)])
+  chip.style.setProperty("--chip-lightness", `${38 + Math.floor(Math.random() * 39)}%`)
+}
+
+function runnerPoint(origin, length, degrees) {
+  const angle = degrees * Math.PI / 180
+  return { x: origin.x + Math.sin(angle) * length, y: origin.y + Math.cos(angle) * length }
+}
+
+function runnerLine(name, start, end) {
+  const line = runnerBones[name]
+  line.setAttribute("x1", start.x)
+  line.setAttribute("y1", start.y)
+  line.setAttribute("x2", end.x)
+  line.setAttribute("y2", end.y)
+}
+
+function drawTokenRunner(now, pose = "run") {
+  const gait = now / 115
+  const idle = pose === "idle"
+  const tucked = pose === "tucked"
+  const flight = idle ? 0 : Math.abs(Math.sin(gait)) * 2.2
+  const hip = { x: 27, y: 43 - flight }
+  const shoulder = { x: 32, y: 24 - flight }
+  const legA = tucked ? 28 : idle ? 5 : Math.sin(gait) * 52
+  const legB = tucked ? -34 : idle ? -7 : Math.sin(gait + Math.PI) * 52
+  const bendA = tucked ? 72 : idle ? 7 : 18 + 70 * Math.max(0, -Math.sin(gait))
+  const bendB = tucked ? 78 : idle ? 9 : 18 + 70 * Math.max(0, -Math.sin(gait + Math.PI))
+  const kneeA = runnerPoint(hip, 17, legA)
+  const footA = runnerPoint(kneeA, 18, legA - bendA)
+  const kneeB = runnerPoint(hip, 17, legB)
+  const footB = runnerPoint(kneeB, 18, legB - bendB)
+  const armA = idle ? -8 : -legA * .72
+  const armB = idle ? 10 : -legB * .72
+  const elbowA = runnerPoint(shoulder, 13, armA)
+  const handA = runnerPoint(elbowA, 12, armA + (armA >= 0 ? 105 : -105))
+  const elbowB = runnerPoint(shoulder, 13, armB)
+  const handB = runnerPoint(elbowB, 12, armB + (armB >= 0 ? 105 : -105))
+
+  runnerLine("runner-torso", shoulder, hip)
+  runnerLine("runner-leg-a-upper", hip, kneeA)
+  runnerLine("runner-leg-a-lower", kneeA, footA)
+  runnerLine("runner-leg-b-upper", hip, kneeB)
+  runnerLine("runner-leg-b-lower", kneeB, footB)
+  runnerLine("runner-arm-a-upper", shoulder, elbowA)
+  runnerLine("runner-arm-a-lower", elbowA, handA)
+  runnerLine("runner-arm-b-upper", shoulder, elbowB)
+  runnerLine("runner-arm-b-lower", elbowB, handB)
+  runnerHead.setAttribute("cx", 34)
+  runnerHead.setAttribute("cy", 12 - flight)
+  runnerEye.setAttribute("x", 37)
+  runnerEye.setAttribute("y", 10 - flight)
+}
+
+function advanceTokenRunner(now) {
+  runnerFrameID = undefined
+  if (!overlay.classList.contains("active") && !overlay.classList.contains("burst")) {
+    drawTokenRunner(0, "idle")
+    return
+  }
+  drawTokenRunner(now, overlay.classList.contains("burst") ? "tucked" : "run")
+  runnerFrameID = requestAnimationFrame(advanceTokenRunner)
+}
+
+function syncTokenRunner() {
+  const moving = overlay.classList.contains("active") || overlay.classList.contains("burst")
+  if (moving && runnerFrameID === undefined) runnerFrameID = requestAnimationFrame(advanceTokenRunner)
+  if (!moving && runnerFrameID !== undefined) {
+    cancelAnimationFrame(runnerFrameID)
+    runnerFrameID = undefined
+    drawTokenRunner(0, "idle")
+  }
 }
 
 chipElements.forEach((chip) => {
@@ -428,6 +504,7 @@ function paint(value) {
   const progress = (valueTotal % TOKENS_PER_BAR) / TOKENS_PER_BAR
   barElement.style.width = `${Math.max(1, progress * 100)}%`
   hudElement.style.setProperty("--chip-x", `${9 + progress * 234}px`)
+  hudElement.style.setProperty("--runner-x", `${9 + progress * 234}px`)
   if (previousBar !== undefined && bar > previousBar) triggerBurst()
   previousBar = bar
 }
@@ -436,8 +513,53 @@ function triggerBurst() {
   overlay.classList.remove("burst")
   void overlay.offsetWidth
   overlay.classList.add("burst")
+  syncTokenRunner()
   clearTimeout(burstTimer)
-  burstTimer = setTimeout(() => overlay.classList.remove("burst"), 580)
+  burstTimer = setTimeout(() => {
+    overlay.classList.remove("burst")
+    syncTokenRunner()
+  }, 580)
+}
+
+function createThemeJourney() {
+  // 方向、跨度和时长均随机；较大的最小跨度可避免颜色只在局部轻微摆动。
+  const direction = Math.random() < .5 ? -1 : 1
+  return {
+    start: themeHue,
+    distance: direction * (45 + Math.random() * 180),
+    duration: 4 + Math.random() * 6,
+    elapsed: 0,
+  }
+}
+
+function advanceTheme(now) {
+  themeFrameID = undefined
+  if (!sessionsBusy || !["idle", "active"].includes(connectionStatus)) {
+    previousThemeFrame = undefined
+    return
+  }
+  const dt = previousThemeFrame === undefined ? 0 : Math.min(.1, (now - previousThemeFrame) / 1_000)
+  previousThemeFrame = now
+  themeJourney ??= createThemeJourney()
+  themeJourney.elapsed = Math.min(themeJourney.duration, themeJourney.elapsed + dt)
+  const progress = themeJourney.elapsed / themeJourney.duration
+  // Smootherstep：每次随机转向前速度自然降到 0，再平滑进入下一段。
+  const eased = progress ** 3 * (progress * (progress * 6 - 15) + 10)
+  themeHue = (themeJourney.start + themeJourney.distance * eased + 360) % 360
+  overlay.style.setProperty("--theme-hue", themeHue.toFixed(2))
+  if (progress >= 1) themeJourney = undefined
+  themeFrameID = requestAnimationFrame(advanceTheme)
+}
+
+function syncThemeAnimation() {
+  const shouldCycle = sessionsBusy && ["idle", "active"].includes(connectionStatus)
+  if (!shouldCycle) {
+    if (themeFrameID !== undefined) cancelAnimationFrame(themeFrameID)
+    themeFrameID = undefined
+    previousThemeFrame = undefined
+    return
+  }
+  if (themeFrameID === undefined) themeFrameID = requestAnimationFrame(advanceTheme)
 }
 
 function setState(consuming) {
@@ -445,6 +567,7 @@ function setState(consuming) {
   overlay.classList.toggle("active", (consuming || sessionsBusy) && !offline)
   overlay.classList.toggle("critical", consuming && !sessionsBusy && !offline)
   overlay.classList.toggle("disconnected", offline)
+  syncTokenRunner()
 }
 
 function advance(now) {
@@ -497,6 +620,7 @@ window.tokenMonitor.onStats((stats) => {
   const wasBusy = sessionsBusy
   if (typeof stats.sessionsBusy === "boolean") sessionsBusy = stats.sessionsBusy
   if (sessionsBusy) catchUpDeadline = undefined
+  syncThemeAnimation()
   if (typeof stats.input !== "number") {
     const remaining = shown && target ? total(target) - total(shown) : 0
     if (wasBusy && !sessionsBusy && remaining > .5) {

@@ -7,11 +7,11 @@ let overlay
 let stopping = false
 
 const OVERLAY_WIDTH = 268
-const OVERLAY_HEIGHT = 76
+const OVERLAY_HEIGHT = 100
 const QUESTION_HEIGHTS = {
   hidden: OVERLAY_HEIGHT,
-  collapsed: 86,
-  expanded: 420,
+  collapsed: 110,
+  expanded: 444,
 }
 
 const empty = () => ({ input: 0, cache: 0, cacheRead: 0, cacheWrite: 0, output: 0, cost: 0 })
