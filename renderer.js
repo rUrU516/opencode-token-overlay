@@ -12,10 +12,13 @@ const questionContent = document.querySelector("#question-content")
 
 // UI 每秒最多推进 10K Token。真实目标值始终完整保留，不会丢失用量。
 const MAX_TOKENS_PER_SECOND = 10_000
+const FINAL_CATCH_UP_MILLISECONDS = 3_000
 const TOKENS_PER_BAR = 100_000
 let shown
 let target
 let connectionStatus = "connecting"
+let sessionsBusy = false
+let catchUpDeadline
 let frameID
 let previousFrame
 let previousBar
@@ -439,7 +442,8 @@ function triggerBurst() {
 
 function setState(consuming) {
   const offline = connectionStatus === "disconnected"
-  overlay.classList.toggle("active", consuming && !offline)
+  overlay.classList.toggle("active", (consuming || sessionsBusy) && !offline)
+  overlay.classList.toggle("critical", consuming && !sessionsBusy && !offline)
   overlay.classList.toggle("disconnected", offline)
 }
 
@@ -456,13 +460,20 @@ function advance(now) {
   const remaining = Math.max(0, total(target) - total(shown))
   if (remaining <= .5) {
     shown = { ...target }
+    catchUpDeadline = undefined
     paint(shown)
     setState(false)
     previousFrame = undefined
     return
   }
 
-  const amount = Math.min(remaining, MAX_TOKENS_PER_SECOND * dt)
+  let speed = MAX_TOKENS_PER_SECOND
+  if (!sessionsBusy) {
+    catchUpDeadline ??= now + FINAL_CATCH_UP_MILLISECONDS
+    const secondsLeft = Math.max(0, (catchUpDeadline - now) / 1_000)
+    speed = secondsLeft > 0 ? Math.max(speed, remaining / secondsLeft) : remaining / Math.max(dt, .001)
+  }
+  const amount = Math.min(remaining, speed * dt)
   const ratio = amount / remaining
   shown = {
     input: shown.input + Math.max(0, target.input - shown.input) * ratio,
@@ -483,8 +494,16 @@ function startAdvancing() {
 
 window.tokenMonitor.onStats((stats) => {
   connectionStatus = stats.status
+  const wasBusy = sessionsBusy
+  if (typeof stats.sessionsBusy === "boolean") sessionsBusy = stats.sessionsBusy
+  if (sessionsBusy) catchUpDeadline = undefined
   if (typeof stats.input !== "number") {
-    setState(Boolean(shown && target && total(target) - total(shown) > .5))
+    const remaining = shown && target ? total(target) - total(shown) : 0
+    if (wasBusy && !sessionsBusy && remaining > .5) {
+      catchUpDeadline = performance.now() + FINAL_CATCH_UP_MILLISECONDS
+      startAdvancing()
+    }
+    setState(remaining > .5)
     return
   }
 
@@ -504,9 +523,13 @@ window.tokenMonitor.onStats((stats) => {
     return
   }
   target = next
-  if (total(target) - total(shown) > .5) startAdvancing()
+  if (total(target) - total(shown) > .5) {
+    if (!sessionsBusy) catchUpDeadline = performance.now() + FINAL_CATCH_UP_MILLISECONDS
+    startAdvancing()
+  }
   else {
     shown = { ...target }
+    catchUpDeadline = undefined
     paint(shown)
     setState(false)
   }

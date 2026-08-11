@@ -130,6 +130,11 @@ async function bootstrap(endpoint) {
   return { today, snapshots, midnight }
 }
 
+async function bootstrapActiveSessions(endpoint) {
+  const result = await json(endpoint, "/api/session/active")
+  return new Set(Object.keys(result.data ?? {}))
+}
+
 function questionFromForm(form) {
   if (form.metadata?.kind !== "question") return
   return {
@@ -238,11 +243,13 @@ async function monitor() {
         if (!ready) queuedEvents.push(event)
         else handleEvent(event)
       }, controller.signal).catch((error) => { streamError = error })
-      const [state, interactionRequests] = await Promise.all([
+      const [state, interactionRequests, activeSessions] = await Promise.all([
         bootstrap(endpoint),
         bootstrapInteractions(endpoint),
+        bootstrapActiveSessions(endpoint),
       ])
-      send({ status: "idle", ...state.today })
+      state.activeSessions = activeSessions
+      send({ status: "idle", sessionsBusy: state.activeSessions.size > 0, ...state.today })
       sendQuestion({ type: "sync", requests: [...interactionRequests.values()] })
       retry = 1_000
 
@@ -253,6 +260,17 @@ async function monitor() {
       rolloverTimer = setTimeout(() => controller.abort("day-rollover"), Math.max(0, nextMidnight.getTime() - Date.now() + 250))
 
       function handleEvent(event) {
+        if (event.type === "session.status") {
+          if (event.data.status.type === "idle") state.activeSessions.delete(event.data.sessionID)
+          else state.activeSessions.add(event.data.sessionID)
+          send({ status: "idle", sessionsBusy: state.activeSessions.size > 0 })
+          return
+        }
+        if (event.type === "session.deleted") {
+          state.activeSessions.delete(event.data.sessionID)
+          send({ status: "idle", sessionsBusy: state.activeSessions.size > 0 })
+          return
+        }
         if (event.type === "form.created") {
           const request = questionFromForm(event.data.form)
           if (!request) return
@@ -333,9 +351,9 @@ async function monitor() {
         const consumed = delta.input + delta.cache + delta.output
         if (consumed <= 0) return
         add(state.today, delta)
-        send({ status: "active", delta: consumed, ...state.today })
+        send({ status: "active", delta: consumed, sessionsBusy: state.activeSessions.size > 0, ...state.today })
         clearTimeout(idleTimer)
-        idleTimer = setTimeout(() => send({ status: "idle", ...state.today }), 2_800)
+        idleTimer = setTimeout(() => send({ status: "idle", sessionsBusy: state.activeSessions.size > 0, ...state.today }), 2_800)
       }
 
       // SSE 在启动汇总之前连接；汇总期间到达的事件按原顺序补放，

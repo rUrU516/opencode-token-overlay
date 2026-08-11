@@ -305,6 +305,11 @@
         clip-path: polygon(43% 0,57% 0,57% 43%,100% 43%,100% 57%,57% 57%,57% 100%,43% 100%,43% 57%,0 57%,0 43%,43% 43%);
       }
       .active .bar-fill { filter: brightness(1.18) saturate(1.2); }
+      .critical .bar-fill { background: #fff36d; filter: brightness(1.6) saturate(1.25); }
+      .critical .bar-shell { animation: criticalFlash .18s steps(2) infinite; }
+      .active.critical .number { color: #fffca0; animation: criticalNumber .14s steps(2) infinite; }
+      .active.critical .bar-track::after { background: rgba(255,255,210,.9); animation-duration: .22s; }
+      .critical .chip { background:#fff36d; animation-duration: .28s !important; }
       .overlay:not(.active):not(.disconnected):not(.burst) .bar-shell { animation: idleShellBreath 3.2s steps(4) infinite; }
       .overlay:not(.active):not(.disconnected):not(.burst) .bar-fill { animation: idleFillBreath 3.2s steps(4) infinite; }
       .overlay:not(.active):not(.disconnected):not(.burst) .number { animation: idleNumberBreath 3.2s steps(4) infinite; }
@@ -497,6 +502,8 @@
         100% { opacity:0; transform:translate(-18px,-21px) rotate(-28deg) scaleX(1.3); }
       }
       @keyframes maxPop { 0% { opacity:0; transform:rotate(7deg) scale(.4); } 20%,75% { opacity:1; transform:rotate(-5deg) scale(1.2); } 100% { opacity:0; transform:rotate(5deg) scale(1.45); } }
+      @keyframes criticalFlash { 0%,100% { filter:brightness(1); } 50% { filter:brightness(1.55); } }
+      @keyframes criticalNumber { 0%,100% { transform:translateX(0); } 50% { transform:translateX(1px); } }
       @keyframes pixelBurst { 0% { opacity:1; transform:translate(0,0) rotate(0); } 75% { opacity:1; } 100% { opacity:0; transform:translate(var(--x),var(--y)) rotate(180deg); } }
       @keyframes overloadShake { 0% { transform:translate(-2px,1px); } 100% { transform:translate(2px,-1px); } }
       @keyframes barFlash { 0% { background:#fff36d; } 100% { background:#ff5148; } }
