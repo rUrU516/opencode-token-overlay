@@ -233,6 +233,7 @@ async function monitor() {
     const controller = new AbortController()
     let rolloverTimer
     let idleTimer
+    let activityTimer
     try {
       send({ status: "connecting" })
       const endpoint = await service()
@@ -252,6 +253,17 @@ async function monitor() {
       send({ status: "idle", sessionsBusy: state.activeSessions.size > 0, ...state.today })
       sendQuestion({ type: "sync", requests: [...interactionRequests.values()] })
       retry = 1_000
+
+      // /api/event 是易失流；若短暂断流刚好漏掉 idle，单靠 SSE 会让忙碌状态永久残留。
+      // 每秒用权威 active 快照轻量校准一次，确保最终冲刺能可靠触发。
+      activityTimer = setInterval(() => {
+        void bootstrapActiveSessions(endpoint).then((active) => {
+          const changed = active.size !== state.activeSessions.size || [...active].some((id) => !state.activeSessions.has(id))
+          if (!changed) return
+          state.activeSessions = active
+          send({ status: "idle", sessionsBusy: state.activeSessions.size > 0 })
+        }).catch(() => { /* SSE 重连流程负责处理服务故障 */ })
+      }, 1_000)
 
       // 跨过本地零点后重新汇总当天消息。不能只等待 Usage 事件，
       // 否则悬浮窗在零点后无新请求时会一直保留昨天的总量。
@@ -375,6 +387,7 @@ async function monitor() {
     } finally {
       clearTimeout(rolloverTimer)
       clearTimeout(idleTimer)
+      clearInterval(activityTimer)
       controller.abort()
     }
   }
