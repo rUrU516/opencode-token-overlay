@@ -34,6 +34,7 @@ let previousFrame
 let previousBar
 let burstTimer
 let bursting = false
+let burstStartedAt
 let questionCollapsed = false
 const pendingInteractions = new Map()
 let currentInteraction
@@ -69,23 +70,49 @@ function runnerLine(name, start, end) {
   line.setAttribute("y2", end.y)
 }
 
-function drawTokenRunner(now, pose = "run") {
+function drawTokenRunner(now, pose = "run", poseProgress = 0) {
   const gait = now / 115
   const idle = pose === "idle"
-  const tucked = pose === "tucked"
-  const flight = idle ? 0 : Math.abs(Math.sin(gait)) * 2.2
+  const blown = pose === "blown"
+  let flight = idle || blown ? 0 : Math.abs(Math.sin(gait)) * 2.2
   const hip = { x: 27, y: 43 - flight }
-  const shoulder = { x: 32, y: 24 - flight }
-  const legA = tucked ? 28 : idle ? 5 : Math.sin(gait) * 52
-  const legB = tucked ? -34 : idle ? -7 : Math.sin(gait + Math.PI) * 52
-  const bendA = tucked ? 72 : idle ? 7 : 18 + 70 * Math.max(0, -Math.sin(gait))
-  const bendB = tucked ? 78 : idle ? 9 : 18 + 70 * Math.max(0, -Math.sin(gait + Math.PI))
+  const shoulder = { x: blown && poseProgress < .16 ? 36 : 32, y: 24 - flight }
+  let legA = idle ? 5 : Math.sin(gait) * 52
+  let legB = idle ? -7 : Math.sin(gait + Math.PI) * 52
+  let bendA = idle ? 7 : 18 + 70 * Math.max(0, -Math.sin(gait))
+  let bendB = idle ? 9 : 18 + 70 * Math.max(0, -Math.sin(gait + Math.PI))
+  let armA = idle ? -8 : -legA * .72
+  let armB = idle ? 10 : -legB * .72
+
+  if (blown && poseProgress < .16) {
+    const resistance = poseProgress / .16
+    legA = 18 - resistance * 6
+    legB = -22 + resistance * 8
+    bendA = 6
+    bendB = 9
+    armA = 58 + resistance * 18
+    armB = 20 + resistance * 42
+  } else if (blown && poseProgress < .82) {
+    const tumble = (poseProgress - .16) / .66 * Math.PI * 4
+    legA = Math.sin(tumble) * 68
+    legB = Math.sin(tumble + Math.PI) * 68
+    bendA = 34 + 38 * (.5 + .5 * Math.cos(tumble))
+    bendB = 34 + 38 * (.5 + .5 * Math.cos(tumble + Math.PI))
+    armA = Math.sin(tumble + Math.PI / 2) * 82
+    armB = Math.sin(tumble - Math.PI / 2) * 82
+  } else if (blown) {
+    const landing = Math.min(1, (poseProgress - .82) / .18)
+    legA = 24 - landing * 19
+    legB = -18 + landing * 11
+    bendA = 14 - landing * 7
+    bendB = 18 - landing * 9
+    armA = 72 - landing * 80
+    armB = -68 + landing * 78
+  }
   const kneeA = runnerPoint(hip, 17, legA)
   const footA = runnerPoint(kneeA, 18, legA - bendA)
   const kneeB = runnerPoint(hip, 17, legB)
   const footB = runnerPoint(kneeB, 18, legB - bendB)
-  const armA = idle ? -8 : -legA * .72
-  const armB = idle ? 10 : -legB * .72
   const elbowA = runnerPoint(shoulder, 13, armA)
   const handA = runnerPoint(elbowA, 12, armA + (armA >= 0 ? 105 : -105))
   const elbowB = runnerPoint(shoulder, 13, armB)
@@ -112,7 +139,8 @@ function advanceTokenRunner(now) {
     drawTokenRunner(0, "idle")
     return
   }
-  drawTokenRunner(now, overlay.classList.contains("burst") ? "tucked" : "run")
+  const burstProgress = burstStartedAt ? Math.min(1, (now - burstStartedAt) / BURST_RETURN_MILLISECONDS) : 0
+  drawTokenRunner(now, overlay.classList.contains("burst") ? "blown" : "run", burstProgress)
   runnerFrameID = requestAnimationFrame(advanceTokenRunner)
 }
 
@@ -528,6 +556,8 @@ function paint(value) {
 
 function triggerBurst() {
   bursting = true
+  burstStartedAt = performance.now()
+  hudElement.style.setProperty("--runner-reset-x", getComputedStyle(hudElement).getPropertyValue("--runner-x").trim() || "17px")
   overlay.classList.remove("burst")
   void overlay.offsetWidth
   overlay.classList.add("burst")
@@ -535,6 +565,7 @@ function triggerBurst() {
   clearTimeout(burstTimer)
   burstTimer = setTimeout(() => {
     bursting = false
+    burstStartedAt = undefined
     overlay.classList.remove("burst")
     syncTokenRunner()
   }, BURST_RETURN_MILLISECONDS)

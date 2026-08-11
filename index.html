@@ -414,6 +414,28 @@
       .active .token-runner { filter: brightness(1.12) saturate(1.12); }
       .critical .token-runner { filter: brightness(1.55) saturate(1.25); }
       .burst .token-runner { animation: runnerReset 1.2s steps(20) both; }
+      .runner-landing-dust {
+        position: absolute;
+        z-index: 11;
+        left: var(--runner-reset-x,17px);
+        bottom: 39px;
+        width: 1px;
+        height: 1px;
+        pointer-events: none;
+      }
+      .runner-landing-dust i {
+        position: absolute;
+        width: 4px;
+        height: 4px;
+        opacity: 0;
+        background: var(--energy-bright);
+        box-shadow: 1px 1px var(--energy-deep);
+      }
+      .runner-landing-dust i:nth-child(1) { --dust-x:-18px; --dust-y:-9px; }
+      .runner-landing-dust i:nth-child(2) { --dust-x:-9px; --dust-y:-17px; width:3px; height:3px; }
+      .runner-landing-dust i:nth-child(3) { --dust-x:12px; --dust-y:-14px; background:var(--energy-flash); }
+      .runner-landing-dust i:nth-child(4) { --dust-x:20px; --dust-y:-6px; width:3px; height:3px; }
+      .burst .runner-landing-dust i { animation:runnerLandingDust .28s steps(5) .92s both; }
 
       .runner-wind {
         position: absolute;
@@ -576,8 +598,19 @@
       @keyframes barFlash { 0% { background:var(--energy-flash); } 100% { background:var(--energy-deep); } }
       @keyframes runnerReset {
         0% { left:243px; transform:translateX(-50%) translateY(0) rotate(0); }
-        45% { transform:translateX(-50%) translateY(-26px) rotate(-180deg); }
-        100% { left:var(--runner-x,9px); transform:translateX(-50%) translateY(0) rotate(-360deg); }
+        7% { left:243px; transform:translateX(-50%) translateY(0) rotate(5deg); }
+        14% { left:243px; transform:translateX(-50%) translateY(-1px) rotate(-9deg); }
+        23% { left:230px; transform:translateX(-50%) translateY(-3px) rotate(-48deg); }
+        52% { left:145px; transform:translateX(-50%) translateY(-5px) rotate(-205deg); }
+        78% { left:48px; transform:translateX(-50%) translateY(-3px) rotate(-332deg); }
+        88% { left:var(--runner-reset-x,17px); transform:translateX(-50%) translateY(2px) rotate(-360deg) scaleX(1.25) scaleY(.65); }
+        95% { left:var(--runner-reset-x,17px); transform:translateX(-50%) translateY(-4px) rotate(-360deg) scaleX(.9) scaleY(1.12); }
+        100% { left:var(--runner-reset-x,17px); transform:translateX(-50%) translateY(0) rotate(-360deg) scale(1); }
+      }
+      @keyframes runnerLandingDust {
+        0% { opacity:0; transform:translate(0,0) scale(.4); }
+        18%,65% { opacity:1; }
+        100% { opacity:0; transform:translate(var(--dust-x),var(--dust-y)) rotate(90deg); }
       }
       @keyframes runnerWind { to { transform:translateX(-330px); opacity:0; } }
       @keyframes runnerWindBack { to { transform:translateX(330px); opacity:0; } }
@@ -597,6 +630,7 @@
             <circle id="runner-head" class="runner-head" r="8"/><rect id="runner-eye" class="runner-eye" width="3" height="3"/>
           </svg>
         </div>
+        <div class="runner-landing-dust" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
         <div class="bar-shell">
           <div class="bar-track"><div class="bar-fill" id="bar"></div></div>
         </div>
