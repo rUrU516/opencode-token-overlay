@@ -371,7 +371,7 @@
         position: absolute;
         right: 14px;
         top: 0;
-        z-index: 11;
+        z-index: 8;
         padding-top: 1px;
         line-height: 12px;
         white-space: nowrap;
@@ -379,7 +379,9 @@
         font: 400 7px/1 "Press Start 2P", monospace;
         letter-spacing: 0;
         text-shadow: 1px 1px 0 #17151e;
+        transition: opacity .08s steps(2), filter .08s steps(2);
       }
+      .burst .legend { opacity:.16; filter:brightness(.55); }
 
       .token-runner {
         position: absolute;
@@ -412,6 +414,33 @@
       .active .token-runner { filter: brightness(1.12) saturate(1.12); }
       .critical .token-runner { filter: brightness(1.55) saturate(1.25); }
       .burst .token-runner { animation: runnerReset .58s steps(10) both; }
+
+      .runner-wind {
+        position: absolute;
+        z-index: 8;
+        left: 2px;
+        bottom: 39px;
+        width: 248px;
+        height: 43px;
+        opacity: 0;
+        overflow: hidden;
+        pointer-events: none;
+      }
+      .runner-wind i {
+        position: absolute;
+        top: var(--wind-top,20px);
+        right: -64px;
+        width: var(--wind-width,42px);
+        height: 2px;
+        opacity: var(--wind-opacity,.7);
+        background: var(--energy-bright);
+        box-shadow: 0 1px var(--energy-deep);
+        animation: runnerWind var(--wind-duration,.72s) steps(10) var(--wind-delay,0s) infinite;
+      }
+      .active .runner-wind { opacity:.46; }
+      .critical .runner-wind { opacity:1; filter:brightness(1.45); }
+      .burst .runner-wind { opacity:.9; }
+      .burst .runner-wind i { left:-64px; right:auto; animation-name:runnerWindBack; animation-duration:.38s; }
 
       .chips {
         position: absolute;
@@ -459,7 +488,7 @@
         position: absolute;
         right: 1px;
         top: 0;
-        z-index: 10;
+        z-index: 12;
         color: var(--energy-flash);
         font: 400 8px/1 "Press Start 2P", monospace;
         letter-spacing: -.08em;
@@ -550,6 +579,8 @@
         45% { transform:translateX(-50%) translateY(-26px) rotate(-180deg); }
         100% { left:var(--runner-x,9px); transform:translateX(-50%) translateY(0) rotate(-360deg); }
       }
+      @keyframes runnerWind { to { transform:translateX(-330px); opacity:0; } }
+      @keyframes runnerWindBack { to { transform:translateX(330px); opacity:0; } }
     </style>
   </head>
   <body>
@@ -557,6 +588,7 @@
       <button class="close" aria-label="关闭" onclick="window.close()">×</button>
       <div class="hud">
         <div class="legend" id="cache-hit">HIT --.----%</div>
+        <div class="runner-wind" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
         <div class="token-runner" aria-hidden="true">
           <svg viewBox="0 0 58 72">
             <g class="runner-rear"><line id="runner-arm-b-upper"/><line id="runner-arm-b-lower"/><line id="runner-leg-b-upper"/><line id="runner-leg-b-lower"/></g>

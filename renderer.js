@@ -6,6 +6,7 @@ const hudElement = document.querySelector(".hud")
 const runnerBones = Object.fromEntries([...document.querySelectorAll(".token-runner line")].map((element) => [element.id, element]))
 const runnerHead = document.querySelector("#runner-head")
 const runnerEye = document.querySelector("#runner-eye")
+const windElements = [...document.querySelectorAll(".runner-wind i")]
 const chipElements = [...document.querySelectorAll(".chip")]
 const questionPanel = document.querySelector("#question-panel")
 const questionToggle = document.querySelector("#question-toggle")
@@ -43,6 +44,14 @@ function randomizeChip(chip) {
   chip.style.setProperty("--size", `${2 + Math.floor(Math.random() * 4)}px`)
   chip.style.setProperty("--spin", `${[90,180,270][Math.floor(Math.random() * 3)]}deg`)
   chip.style.setProperty("--chip-lightness", `${38 + Math.floor(Math.random() * 39)}%`)
+}
+
+function randomizeWind(wind, initial = false) {
+  wind.style.setProperty("--wind-top", `${1 + Math.floor(Math.random() * 39)}px`)
+  wind.style.setProperty("--wind-width", `${20 + Math.floor(Math.random() * 57)}px`)
+  wind.style.setProperty("--wind-opacity", (.4 + Math.random() * .55).toFixed(2))
+  wind.style.setProperty("--wind-duration", `${(.5 + Math.random() * .48).toFixed(2)}s`)
+  if (initial) wind.style.setProperty("--wind-delay", `${(-Math.random() * .9).toFixed(2)}s`)
 }
 
 function runnerPoint(origin, length, degrees) {
@@ -118,6 +127,11 @@ function syncTokenRunner() {
 chipElements.forEach((chip) => {
   randomizeChip(chip)
   chip.addEventListener("animationiteration", () => randomizeChip(chip))
+})
+
+windElements.forEach((wind) => {
+  randomizeWind(wind, true)
+  wind.addEventListener("animationiteration", () => randomizeWind(wind))
 })
 
 const escapeHTML = (value) => String(value ?? "").replace(/[&<>'"]/g, (character) => ({
@@ -504,7 +518,8 @@ function paint(value) {
   const progress = (valueTotal % TOKENS_PER_BAR) / TOKENS_PER_BAR
   barElement.style.width = `${Math.max(1, progress * 100)}%`
   hudElement.style.setProperty("--chip-x", `${9 + progress * 234}px`)
-  hudElement.style.setProperty("--runner-x", `${9 + progress * 234}px`)
+  // 人物在两端保留自身半宽，避免起点和终点姿态被透明窗口裁切。
+  hudElement.style.setProperty("--runner-x", `${17 + progress * 226}px`)
   if (previousBar !== undefined && bar > previousBar) triggerBurst()
   previousBar = bar
 }
