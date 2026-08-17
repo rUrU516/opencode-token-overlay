@@ -54,11 +54,12 @@ async function service() {
   return { url: info.url, headers }
 }
 
-async function json(endpoint, pathname) {
+async function json(endpoint, pathname, options = {}) {
   const response = await fetch(new URL(pathname, endpoint.url), {
     headers: endpoint.headers,
     signal: AbortSignal.timeout(15_000),
   })
+  if (response.status === 404 && options.notFound !== undefined) return options.notFound
   if (!response.ok) throw new Error(`${pathname}: HTTP ${response.status}`)
   return response.json()
 }
@@ -186,7 +187,8 @@ async function bootstrapInteractions(endpoint) {
     if (location?.workspaceID) query.set("location[workspace]", location.workspaceID)
     const suffix = query.size ? `?${query}` : ""
     return [
-      json(endpoint, `/api/question/request${suffix}`).then((page) => ({ kind: "question", page })),
+      // 新版 V2 已移除旧 Question 列表接口；仅在旧服务仍提供时补齐它。
+      json(endpoint, `/api/question/request${suffix}`, { notFound: { data: [] } }).then((page) => ({ kind: "question", page })),
       json(endpoint, `/api/form/request${suffix}`).then((page) => ({ kind: "form", page })),
       json(endpoint, `/api/permission/request${suffix}`).then((page) => ({ kind: "permission", page })),
     ]
