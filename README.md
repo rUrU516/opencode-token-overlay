@@ -2,17 +2,25 @@
 
 一个面向 macOS 的轻量 Electron 桌面悬浮窗，实时展示 OpenCode V2 当日 Token 总消耗。
 
+<p align="center">
+  <img src="assets/opencode-token-overlay-demo.gif" alt="OpenCode Token Overlay 动效预览" width="536" />
+  <br />
+  <sub>演示数据仅用于展示动画；正式运行时只显示 OpenCode V2 返回的真实 Usage。</sub>
+</p>
+
 ## 功能
 
 - 透明、无边框、置顶并可拖拽
 - 自动发现本地 OpenCode V2 后台服务
 - 通过 HTTP API 汇总当天 Token
 - 订阅 `/api/event` 实时接收 Usage 更新
-- 1980 年代街机像素 HUD、呼吸和爆满动画
+- 1980 年代街机像素 HUD、随机主题色、呼吸和爆满动画
 - 每 100,000 Token 填满一轮进度条
 - 显示值最高以 10,000 Token/秒追赶真实值
 - 右上角显示当天缓存命中率
-- 正常增长时在进度前沿喷出老式像素木屑与命中火花
+- 火柴跑者跟随真实进度奔跑，满条后被风吹回起点
+- 正常增长时显示随机风线、像素木屑与命中火花
+- 可直接回答 Question，并审批 `ONCE / ALWAYS / REJECT` Permission
 
 ## 运行
 
