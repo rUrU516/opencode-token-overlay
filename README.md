@@ -22,16 +22,64 @@
 - 正常增长时显示随机风线、像素木屑与命中火花
 - 可直接回答 Question，并审批 `ONCE / ALWAYS / REJECT` Permission
 
-## 运行
+## 源码安装
 
-要求：macOS、Node.js、正在运行的 OpenCode V2 服务。
+要求：
+
+- macOS
+- Node.js 22.12.0 或更高版本
+- 已安装并运行过 OpenCode V2
 
 ```bash
-npm install
+git clone https://github.com/rUrU516/opencode-token-overlay.git
+cd opencode-token-overlay
+npm ci
+npm run launch
+```
+
+`npm run launch` 会将悬浮窗作为独立后台进程启动，终端可以直接关闭。重复执行不会创建第二个实例。
+
+前台调试运行：
+
+```bash
 npm start
 ```
 
-检查 JavaScript 语法：
+将鼠标移到悬浮窗上，点击左下角出现的 `×` 可以退出。
+
+也可以在仓库目录执行：
+
+```bash
+npm run stop
+npm run restart
+```
+
+## 更新
+
+在仓库目录执行：
+
+```bash
+git pull --ff-only
+npm ci
+npm run restart
+```
+
+## 排查
+
+如果 HUD 变灰，先检查 OpenCode V2 后台服务：
+
+```bash
+opencode2 service status
+opencode2 api get /api/health
+```
+
+必要时重启服务：
+
+```bash
+opencode2 service restart
+```
+
+检查悬浮窗 JavaScript：
 
 ```bash
 npm run check

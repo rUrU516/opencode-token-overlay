@@ -6,9 +6,15 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
+    "launch": "bash scripts/launch-macos.sh",
+    "stop": "bash scripts/stop-macos.sh",
+    "restart": "npm run stop && npm run launch",
     "check": "node --check main.js && node --check preload.js && node --check renderer.js"
   },
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "devDependencies": {
-    "electron": "latest"
+    "electron": "43.3.0"
   }
 }
