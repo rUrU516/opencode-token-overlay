@@ -5,6 +5,7 @@
 - `character-framework.js`：注册表、生命周期、阶段切分和每圈轮换。
 - `roster.js`：首批 10 个角色。
 - `roster-wave2.js`：第二批 12 个角色。
+- `roster-wave3.js`：第三批 50 个角色，文件内自包含共用 CSS，并为每个角色提供独立轮廓、跑姿和爆满反馈。
 
 新增角色时创建 JavaScript 文件并调用：
 
