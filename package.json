@@ -16,7 +16,7 @@
     "service:restart": "bash scripts/service-macos.sh restart",
     "service:status": "bash scripts/service-macos.sh status",
     "service:logs": "bash scripts/service-macos.sh logs",
-    "check": "node --check main.js && node --check preload.js && node --check renderer.js"
+    "check": "node --check main.js && node --check preload.js && node --check characters/character-framework.js && node --check characters/roster.js && node --check renderer.js"
   },
   "engines": {
     "node": ">=22.12.0"

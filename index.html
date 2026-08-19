@@ -383,37 +383,48 @@
       }
       .burst .legend { opacity:.16; filter:brightness(.55); }
 
-      .token-runner {
+      .token-character {
         position: absolute;
         z-index: 10;
-        left: var(--runner-x,9px);
-        bottom: 40px;
-        width: 31px;
-        height: 39px;
+        left: var(--character-x,17px);
+        bottom: var(--character-bottom,39px);
+        width: var(--character-width,36px);
+        height: var(--character-height,42px);
         transform: translateX(-50%);
         pointer-events: none;
         will-change: left, transform;
       }
-      .token-runner svg {
-        width: 31px;
-        height: 39px;
+      .token-character svg {
+        width: 100%;
+        height: 100%;
         overflow: visible;
         filter: drop-shadow(1px 1px 0 #0b0910);
       }
-      .token-runner line {
+      .token-character .character-body,
+      .token-character .character-body > * { transform-box:fill-box; }
+      .token-character line,
+      .token-character .stroke {
+        fill: none;
+        stroke: var(--energy-bright);
         stroke-width: 4.5;
         stroke-linecap: square;
         stroke-linejoin: miter;
       }
-      .token-runner .runner-rear { stroke: var(--energy-deep); opacity: .72; }
-      .token-runner .runner-core { stroke: var(--energy-main); }
-      .token-runner .runner-front { stroke: var(--energy-bright); }
-      .token-runner .runner-head { fill: var(--energy-flash); stroke: #17151e; stroke-width: 3; }
-      .token-runner .runner-eye { fill: #17151e; }
-      .overlay:not(.active):not(.burst) .token-runner { filter: brightness(.84) saturate(.8); }
-      .active .token-runner { filter: brightness(1.12) saturate(1.12); }
-      .critical .token-runner { filter: brightness(1.55) saturate(1.25); }
-      .burst .token-runner { animation: runnerReset 1.2s steps(20) both; }
+      .token-character .main { fill:var(--energy-main); stroke:#17151e; stroke-width:3; }
+      .token-character .light { fill:var(--energy-flash); stroke:#17151e; stroke-width:3; }
+      .token-character .bright { fill:var(--energy-bright); stroke:#17151e; stroke-width:3; }
+      .token-character .deep { fill:var(--energy-deep); stroke:#17151e; stroke-width:3; }
+      .token-character .flash { fill:var(--energy-flash); stroke:#17151e; stroke-width:3; }
+      .token-character .no-stroke { stroke:none; }
+      .token-character .eye-fill,
+      .token-character .eye { fill:#17151e; }
+      .token-character .rear { stroke:var(--energy-deep); opacity:.72; }
+      .token-character .core { stroke:var(--energy-main); }
+      .token-character .front { stroke:var(--energy-bright); }
+      .token-character .head { fill:var(--energy-flash); stroke:#17151e; stroke-width:3; }
+      .overlay:not(.active):not(.burst) .token-character { filter:brightness(.84) saturate(.8); }
+      .active .token-character { filter:brightness(1.12) saturate(1.12); }
+      .critical .token-character { filter:brightness(1.55) saturate(1.25); }
       .runner-landing-dust {
         position: absolute;
         z-index: 11;
@@ -596,17 +607,34 @@
       @keyframes pixelBurst { 0% { opacity:1; transform:translate(0,0) rotate(0); } 75% { opacity:1; } 100% { opacity:0; transform:translate(var(--x),var(--y)) rotate(180deg); } }
       @keyframes overloadShake { 0% { transform:translate(-2px,1px); } 100% { transform:translate(2px,-1px); } }
       @keyframes barFlash { 0% { background:var(--energy-flash); } 100% { background:var(--energy-deep); } }
-      @keyframes runnerReset {
-        0% { left:243px; transform:translateX(-50%) translateY(0) rotate(0); }
-        7% { left:243px; transform:translateX(-50%) translateY(0) rotate(5deg); }
-        14% { left:243px; transform:translateX(-50%) translateY(-1px) rotate(-9deg); }
-        23% { left:230px; transform:translateX(-50%) translateY(-3px) rotate(-48deg); }
-        52% { left:145px; transform:translateX(-50%) translateY(-5px) rotate(-205deg); }
-        78% { left:48px; transform:translateX(-50%) translateY(-3px) rotate(-332deg); }
-        88% { left:var(--runner-reset-x,17px); transform:translateX(-50%) translateY(2px) rotate(-360deg) scaleX(1.25) scaleY(.65); }
-        95% { left:var(--runner-reset-x,17px); transform:translateX(-50%) translateY(-4px) rotate(-360deg) scaleX(.9) scaleY(1.12); }
-        100% { left:var(--runner-reset-x,17px); transform:translateX(-50%) translateY(0) rotate(-360deg) scale(1); }
-      }
+      @keyframes characterIdle { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-1px)} }
+      @keyframes characterResist { to{transform:skewX(-5deg) translateX(1px)} }
+      @keyframes characterLaunch { to{transform:scaleX(.9) scaleY(1.08)} }
+      @keyframes characterTumble { to{transform:rotate(12deg)} }
+      @keyframes characterLand { 50%{transform:scaleX(1.18) scaleY(.76)} }
+      @keyframes runnerBodyRun { 50%{transform:translateY(-1px)} }
+      @keyframes rabbitRun { 0%,100%{transform:translateY(2px) scaleY(.9)} 50%{transform:translateY(-7px) scaleY(1.06)} }
+      @keyframes rabbitEars { 50%{transform:rotate(-16deg)} }
+      @keyframes foxRun { 50%{transform:translateY(-3px) rotate(-2deg)} }
+      @keyframes foxTail { 50%{transform:rotate(18deg)} }
+      @keyframes slimeRun { 0%,100%{transform:scaleX(1.18) scaleY(.76)} 50%{transform:translateY(-7px) scaleX(.84) scaleY(1.15)} }
+      @keyframes slimeTumble { 50%{transform:skewX(18deg) scaleX(.75) scaleY(1.25)} }
+      @keyframes robotRun { 50%{transform:translateY(-3px) rotate(2deg)} }
+      @keyframes robotKey { to{transform:rotate(360deg)} }
+      @keyframes ghostRun { 50%{transform:translateY(-6px) rotate(2deg)} }
+      @keyframes ghostMouth { 50%{transform:scaleY(.25)} }
+      @keyframes dragonRun { 50%{transform:translateY(-5px) rotate(-3deg)} }
+      @keyframes dragonWing { to{transform:scaleY(.18) rotate(12deg)} }
+      @keyframes dragonFlame { to{transform:scaleX(.42)} }
+      @keyframes ninjaRun { 50%{transform:translateY(-3px) skewX(-7deg)} }
+      @keyframes ninjaScarf { 50%{transform:scaleX(.55) translateY(4px)} }
+      @keyframes ninjaBlade { to{transform:rotate(360deg)} }
+      @keyframes snailRun { 50%{transform:translateY(-3px) rotate(-2deg)} }
+      @keyframes snailShell { to{transform:rotate(360deg)} }
+      @keyframes snailJet { to{transform:scaleX(.42)} }
+      @keyframes catRun { 50%{transform:translateY(-4px)} }
+      @keyframes catTail { 50%{transform:rotate(-24deg)} }
+      @keyframes catGlitch { 0%,80%{opacity:0;transform:translateX(0)} 81%,100%{opacity:.55;transform:translateX(-8px)} }
       @keyframes runnerLandingDust {
         0% { opacity:0; transform:translate(0,0) scale(.4); }
         18%,65% { opacity:1; }
@@ -622,14 +650,7 @@
       <div class="hud">
         <div class="legend" id="cache-hit">HIT --.----%</div>
         <div class="runner-wind" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
-        <div class="token-runner" aria-hidden="true">
-          <svg viewBox="0 0 58 72">
-            <g class="runner-rear"><line id="runner-arm-b-upper"/><line id="runner-arm-b-lower"/><line id="runner-leg-b-upper"/><line id="runner-leg-b-lower"/></g>
-            <line id="runner-torso" class="runner-core"/>
-            <g class="runner-front"><line id="runner-arm-a-upper"/><line id="runner-arm-a-lower"/><line id="runner-leg-a-upper"/><line id="runner-leg-a-lower"/></g>
-            <circle id="runner-head" class="runner-head" r="8"/><rect id="runner-eye" class="runner-eye" width="3" height="3"/>
-          </svg>
-        </div>
+        <div class="token-character" aria-hidden="true"></div>
         <div class="runner-landing-dust" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
         <div class="bar-shell">
           <div class="bar-track"><div class="bar-fill" id="bar"></div></div>
@@ -653,6 +674,8 @@
         </div>
       </aside>
     </section>
+    <script src="characters/character-framework.js"></script>
+    <script src="characters/roster.js"></script>
     <script src="renderer.js"></script>
   </body>
 </html>

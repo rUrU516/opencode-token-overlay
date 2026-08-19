@@ -3,9 +3,8 @@ const totalElement = document.querySelector("#total")
 const barElement = document.querySelector("#bar")
 const cacheHitElement = document.querySelector("#cache-hit")
 const hudElement = document.querySelector(".hud")
-const runnerBones = Object.fromEntries([...document.querySelectorAll(".token-runner line")].map((element) => [element.id, element]))
-const runnerHead = document.querySelector("#runner-head")
-const runnerEye = document.querySelector("#runner-eye")
+const characterElement = document.querySelector(".token-character")
+const characterController = new window.TokenCharacters.Controller(characterElement, { trackStart: 17, trackEnd: 243 })
 const windElements = [...document.querySelectorAll(".runner-wind i")]
 const chipElements = [...document.querySelectorAll(".chip")]
 const questionPanel = document.querySelector("#question-panel")
@@ -28,13 +27,12 @@ let themeHue = 132
 let themeFrameID
 let previousThemeFrame
 let themeJourney
-let runnerFrameID
+let characterFrameID
 let frameID
 let previousFrame
 let previousBar
 let burstTimer
 let bursting = false
-let burstStartedAt
 let questionCollapsed = false
 const pendingInteractions = new Map()
 let currentInteraction
@@ -57,100 +55,23 @@ function randomizeWind(wind, initial = false) {
   if (initial) wind.style.setProperty("--wind-delay", `${(-Math.random() * .9).toFixed(2)}s`)
 }
 
-function runnerPoint(origin, length, degrees) {
-  const angle = degrees * Math.PI / 180
-  return { x: origin.x + Math.sin(angle) * length, y: origin.y + Math.cos(angle) * length }
-}
-
-function runnerLine(name, start, end) {
-  const line = runnerBones[name]
-  line.setAttribute("x1", start.x)
-  line.setAttribute("y1", start.y)
-  line.setAttribute("x2", end.x)
-  line.setAttribute("y2", end.y)
-}
-
-function drawTokenRunner(now, pose = "run", poseProgress = 0) {
-  const gait = now / 115
-  const idle = pose === "idle"
-  const blown = pose === "blown"
-  let flight = idle || blown ? 0 : Math.abs(Math.sin(gait)) * 2.2
-  const hip = { x: 27, y: 43 - flight }
-  const shoulder = { x: blown && poseProgress < .16 ? 36 : 32, y: 24 - flight }
-  let legA = idle ? 5 : Math.sin(gait) * 52
-  let legB = idle ? -7 : Math.sin(gait + Math.PI) * 52
-  let bendA = idle ? 7 : 18 + 70 * Math.max(0, -Math.sin(gait))
-  let bendB = idle ? 9 : 18 + 70 * Math.max(0, -Math.sin(gait + Math.PI))
-  let armA = idle ? -8 : -legA * .72
-  let armB = idle ? 10 : -legB * .72
-
-  if (blown && poseProgress < .16) {
-    const resistance = poseProgress / .16
-    legA = 18 - resistance * 6
-    legB = -22 + resistance * 8
-    bendA = 6
-    bendB = 9
-    armA = 58 + resistance * 18
-    armB = 20 + resistance * 42
-  } else if (blown && poseProgress < .82) {
-    const tumble = (poseProgress - .16) / .66 * Math.PI * 4
-    legA = Math.sin(tumble) * 68
-    legB = Math.sin(tumble + Math.PI) * 68
-    bendA = 34 + 38 * (.5 + .5 * Math.cos(tumble))
-    bendB = 34 + 38 * (.5 + .5 * Math.cos(tumble + Math.PI))
-    armA = Math.sin(tumble + Math.PI / 2) * 82
-    armB = Math.sin(tumble - Math.PI / 2) * 82
-  } else if (blown) {
-    const landing = Math.min(1, (poseProgress - .82) / .18)
-    legA = 24 - landing * 19
-    legB = -18 + landing * 11
-    bendA = 14 - landing * 7
-    bendB = 18 - landing * 9
-    armA = 72 - landing * 80
-    armB = -68 + landing * 78
-  }
-  const kneeA = runnerPoint(hip, 17, legA)
-  const footA = runnerPoint(kneeA, 18, legA - bendA)
-  const kneeB = runnerPoint(hip, 17, legB)
-  const footB = runnerPoint(kneeB, 18, legB - bendB)
-  const elbowA = runnerPoint(shoulder, 13, armA)
-  const handA = runnerPoint(elbowA, 12, armA + (armA >= 0 ? 105 : -105))
-  const elbowB = runnerPoint(shoulder, 13, armB)
-  const handB = runnerPoint(elbowB, 12, armB + (armB >= 0 ? 105 : -105))
-
-  runnerLine("runner-torso", shoulder, hip)
-  runnerLine("runner-leg-a-upper", hip, kneeA)
-  runnerLine("runner-leg-a-lower", kneeA, footA)
-  runnerLine("runner-leg-b-upper", hip, kneeB)
-  runnerLine("runner-leg-b-lower", kneeB, footB)
-  runnerLine("runner-arm-a-upper", shoulder, elbowA)
-  runnerLine("runner-arm-a-lower", elbowA, handA)
-  runnerLine("runner-arm-b-upper", shoulder, elbowB)
-  runnerLine("runner-arm-b-lower", elbowB, handB)
-  runnerHead.setAttribute("cx", 34)
-  runnerHead.setAttribute("cy", 12 - flight)
-  runnerEye.setAttribute("x", 37)
-  runnerEye.setAttribute("y", 10 - flight)
-}
-
-function advanceTokenRunner(now) {
-  runnerFrameID = undefined
+function advanceTokenCharacter(now) {
+  characterFrameID = undefined
   if (!overlay.classList.contains("active") && !overlay.classList.contains("burst")) {
-    drawTokenRunner(0, "idle")
+    characterController.render(0, false)
     return
   }
-  const burstProgress = burstStartedAt ? Math.min(1, (now - burstStartedAt) / BURST_RETURN_MILLISECONDS) : 0
-  drawTokenRunner(now, overlay.classList.contains("burst") ? "blown" : "run", burstProgress)
-  runnerFrameID = requestAnimationFrame(advanceTokenRunner)
+  characterController.render(now, true)
+  characterFrameID = requestAnimationFrame(advanceTokenCharacter)
 }
 
-function syncTokenRunner() {
+function syncTokenCharacter() {
   const moving = overlay.classList.contains("active") || overlay.classList.contains("burst")
-  if (moving && runnerFrameID === undefined) runnerFrameID = requestAnimationFrame(advanceTokenRunner)
-  if (!moving && runnerFrameID !== undefined) {
-    cancelAnimationFrame(runnerFrameID)
-    runnerFrameID = undefined
-    drawTokenRunner(0, "idle")
+  if (moving && characterFrameID === undefined) characterFrameID = requestAnimationFrame(advanceTokenCharacter)
+  if (!moving && characterFrameID !== undefined) {
+    cancelAnimationFrame(characterFrameID)
+    characterFrameID = undefined
+    characterController.render(0, false)
   }
 }
 
@@ -548,26 +469,28 @@ function paint(value) {
   const progress = (valueTotal % TOKENS_PER_BAR) / TOKENS_PER_BAR
   barElement.style.width = `${Math.max(1, progress * 100)}%`
   hudElement.style.setProperty("--chip-x", `${9 + progress * 234}px`)
-  // 人物在两端保留自身半宽，避免起点和终点姿态被透明窗口裁切。
-  hudElement.style.setProperty("--runner-x", `${17 + progress * 226}px`)
+  // 角色在两端保留安全边距，避免不同尺寸的形象被透明窗口裁切。
+  characterController.setProgress(progress)
   if (previousBar !== undefined && bar > previousBar) triggerBurst()
   previousBar = bar
 }
 
 function triggerBurst() {
   bursting = true
-  burstStartedAt = performance.now()
-  hudElement.style.setProperty("--runner-reset-x", getComputedStyle(hudElement).getPropertyValue("--runner-x").trim() || "17px")
+  const startedAt = performance.now()
+  const landingX = 17 + characterController.progress * 226
+  hudElement.style.setProperty("--runner-reset-x", `${landingX}px`)
+  characterController.beginBurst(startedAt, BURST_RETURN_MILLISECONDS, landingX)
   overlay.classList.remove("burst")
   void overlay.offsetWidth
   overlay.classList.add("burst")
-  syncTokenRunner()
+  syncTokenCharacter()
   clearTimeout(burstTimer)
   burstTimer = setTimeout(() => {
     bursting = false
-    burstStartedAt = undefined
+    characterController.endBurst()
     overlay.classList.remove("burst")
-    syncTokenRunner()
+    syncTokenCharacter()
   }, BURST_RETURN_MILLISECONDS)
 }
 
@@ -617,7 +540,7 @@ function setState(consuming) {
   overlay.classList.toggle("active", (consuming || sessionsBusy) && !offline)
   overlay.classList.toggle("critical", consuming && !sessionsBusy && !offline)
   overlay.classList.toggle("disconnected", offline)
-  syncTokenRunner()
+  syncTokenCharacter()
 }
 
 function advance(now) {

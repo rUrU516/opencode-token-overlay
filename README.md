@@ -18,7 +18,8 @@
 - 每 100,000 Token 填满一轮进度条
 - 显示值最高以 10,000 Token/秒追赶真实值
 - 右上角显示当天缓存命中率
-- 火柴跑者跟随真实进度奔跑，满条后被风吹回起点
+- 当前角色跟随真实进度前沿运动，满条后播放专属回吹动画
+- 内置 10 个可轮换角色，每跑完 100,000 Token 自动切换下一个
 - 正常增长时显示随机风线、像素木屑与命中火花
 - 可直接回答 Question，并审批 `ONCE / ALWAYS / REJECT` Permission
 
@@ -124,3 +125,7 @@ cache read / (input + cache read + cache write)
 ```
 
 普通输入和缓存写入均属于本次没有直接命中缓存的输入 Token；输出与推理 Token 不参与计算。
+
+## 自定义角色
+
+角色通过 `characters/character-framework.js` 注册，统一支持 `idle / run / resist / launch / tumble / land` 阶段。内置角色位于 `characters/roster.js`，新增角色的接口与示例见 [`characters/README.md`](characters/README.md)。注册顺序就是每轮结束后的切换顺序。
