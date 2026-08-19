@@ -4,7 +4,7 @@ const barElement = document.querySelector("#bar")
 const cacheHitElement = document.querySelector("#cache-hit")
 const hudElement = document.querySelector(".hud")
 const characterElement = document.querySelector(".token-character")
-const characterController = new window.TokenCharacters.Controller(characterElement, { trackStart: 17, trackEnd: 243 })
+const characterController = new window.TokenCharacters.Controller(characterElement, { trackStart: 24, trackEnd: 242 })
 const windElements = [...document.querySelectorAll(".runner-wind i")]
 const chipElements = [...document.querySelectorAll(".chip")]
 const questionPanel = document.querySelector("#question-panel")
@@ -478,7 +478,7 @@ function paint(value) {
 function triggerBurst() {
   bursting = true
   const startedAt = performance.now()
-  const landingX = 17 + characterController.progress * 226
+  const landingX = characterController.currentX
   hudElement.style.setProperty("--runner-reset-x", `${landingX}px`)
   characterController.beginBurst(startedAt, BURST_RETURN_MILLISECONDS, landingX)
   overlay.classList.remove("burst")

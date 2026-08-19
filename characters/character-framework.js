@@ -37,11 +37,13 @@
     constructor(element, options = {}) {
       if (!definitions.length) throw new Error("No Token characters are registered")
       this.element = element
-      this.trackStart = options.trackStart ?? 17
-      this.trackEnd = options.trackEnd ?? 243
+      this.trackStart = options.trackStart ?? 24
+      this.trackEnd = options.trackEnd ?? 242
       this.index = Math.max(0, Math.min(definitions.length - 1, options.index ?? 0))
       this.progress = 0
       this.burst = undefined
+      this.phase = undefined
+      this.outerPoseReset = false
       this.mount(this.index)
     }
 
@@ -50,14 +52,16 @@
       this.definition = definitions[this.index]
       const definition = this.definition
       this.element.dataset.character = definition.id
-      this.element.dataset.phase = "idle"
       this.element.setAttribute("aria-label", definition.name)
       this.element.style.setProperty("--character-width", `${definition.width}px`)
       this.element.style.setProperty("--character-height", `${definition.height}px`)
       this.element.style.setProperty("--character-bottom", `${definition.bottom}px`)
       this.element.innerHTML = `<svg viewBox="${definition.viewBox}" role="img" aria-label="${definition.name}">${definition.svg}</svg>`
+      this.phase = undefined
+      this.outerPoseReset = false
       this.resetOuterPose()
       definition.mounted?.(this.element)
+      this.setPhase("idle")
     }
 
     next() {
@@ -67,12 +71,14 @@
     setProgress(progress) {
       this.progress = Math.max(0, Math.min(1, progress))
       const x = this.trackStart + this.progress * (this.trackEnd - this.trackStart)
+      this.currentX = x
       this.element.style.setProperty("--character-x", `${x}px`)
     }
 
     beginBurst(startedAt, duration, landingX) {
       this.burst = { startedAt, duration, landingX }
-      this.element.dataset.phase = "resist"
+      this.outerPoseReset = false
+      this.setPhase("resist")
     }
 
     endBurst() {
@@ -82,17 +88,27 @@
     }
 
     resetOuterPose() {
-      this.element.style.left = "var(--character-x,17px)"
+      if (this.outerPoseReset) return
+      this.element.style.left = "var(--character-x,24px)"
       this.element.style.transform = "translateX(-50%)"
       this.element.style.opacity = "1"
       this.element.style.filter = ""
+      this.outerPoseReset = true
+    }
+
+    setPhase(phase) {
+      if (phase === this.phase) return
+      const previous = this.phase
+      this.phase = phase
+      this.element.dataset.phase = phase
+      this.definition.phaseChanged?.(this.element, { phase, previous })
     }
 
     render(now, moving) {
       if (!this.burst) {
         this.resetOuterPose()
         const phase = moving ? "run" : "idle"
-        this.element.dataset.phase = phase
+        this.setPhase(phase)
         this.definition.render?.(this.element, { phase, progress: 0, now })
         return
       }
@@ -108,7 +124,8 @@
         startX: this.trackEnd,
         endX: this.burst.landingX,
       })
-      this.element.dataset.phase = phase.name
+      this.setPhase(phase.name)
+      this.outerPoseReset = false
       this.element.style.left = `${pose.x ?? this.trackEnd}px`
       this.element.style.transform = `translateX(-50%) translateY(${pose.y ?? 0}px) rotate(${pose.rotate ?? 0}deg) scaleX(${pose.scaleX ?? 1}) scaleY(${pose.scaleY ?? 1})`
       this.element.style.opacity = String(pose.opacity ?? 1)
