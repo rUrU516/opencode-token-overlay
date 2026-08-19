@@ -4,7 +4,8 @@ const barElement = document.querySelector("#bar")
 const cacheHitElement = document.querySelector("#cache-hit")
 const hudElement = document.querySelector(".hud")
 const characterElement = document.querySelector(".token-character")
-const characterController = new window.TokenCharacters.Controller(characterElement, { trackStart: 24, trackEnd: 242 })
+const characterTransitionElement = document.querySelector(".character-transition")
+const characterController = new window.TokenCharacters.Controller(characterElement, { trackStart: 24, trackEnd: 242, transitionElement: characterTransitionElement })
 const windElements = [...document.querySelectorAll(".runner-wind i")]
 const chipElements = [...document.querySelectorAll(".chip")]
 const questionPanel = document.querySelector("#question-panel")
@@ -17,6 +18,7 @@ const questionContent = document.querySelector("#question-content")
 const MAX_TOKENS_PER_SECOND = 10_000
 const FINAL_CATCH_UP_MILLISECONDS = 3_000
 const BURST_RETURN_MILLISECONDS = 1_200
+const CHARACTER_SWITCH_MILLISECONDS = 460
 const TOKENS_PER_BAR = 100_000
 let shown
 let target
@@ -57,7 +59,7 @@ function randomizeWind(wind, initial = false) {
 
 function advanceTokenCharacter(now) {
   characterFrameID = undefined
-  if (!overlay.classList.contains("active") && !overlay.classList.contains("burst")) {
+  if (!overlay.classList.contains("active") && !overlay.classList.contains("burst") && !characterController.switching) {
     characterController.render(0, false)
     return
   }
@@ -66,7 +68,7 @@ function advanceTokenCharacter(now) {
 }
 
 function syncTokenCharacter() {
-  const moving = overlay.classList.contains("active") || overlay.classList.contains("burst")
+  const moving = overlay.classList.contains("active") || overlay.classList.contains("burst") || Boolean(characterController.switching)
   if (moving && characterFrameID === undefined) characterFrameID = requestAnimationFrame(advanceTokenCharacter)
   if (!moving && characterFrameID !== undefined) {
     cancelAnimationFrame(characterFrameID)
@@ -487,10 +489,14 @@ function triggerBurst() {
   syncTokenCharacter()
   clearTimeout(burstTimer)
   burstTimer = setTimeout(() => {
-    bursting = false
-    characterController.endBurst()
     overlay.classList.remove("burst")
+    characterController.beginSwitch(performance.now(), CHARACTER_SWITCH_MILLISECONDS)
     syncTokenCharacter()
+    burstTimer = setTimeout(() => {
+      characterController.endSwitch()
+      bursting = false
+      syncTokenCharacter()
+    }, CHARACTER_SWITCH_MILLISECONDS)
   }, BURST_RETURN_MILLISECONDS)
 }
 
@@ -553,7 +559,7 @@ function advance(now) {
   for (const key of ["input", "cache", "output"]) {
     if (target[key] < shown[key]) shown[key] = target[key]
   }
-  // 爆满回吹期间冻结显示值；真实目标仍可继续增长，落地后再恢复追赶。
+  // 爆满回吹和角色粒子重组期间冻结显示值；真实目标仍继续增长，完成后恢复追赶。
   if (bursting) {
     previousFrame = now
     frameID = requestAnimationFrame(advance)

@@ -20,6 +20,7 @@
 - 右上角显示当天缓存命中率
 - 当前角色跟随真实进度前沿运动，满条后播放专属回吹动画
 - 内置 10 个可轮换角色，每跑完 100,000 Token 自动切换下一个
+- 角色落地后统一碎成主题色像素粒子，再由粒子重组成下一个角色
 - 正常增长时显示随机风线、像素木屑与命中火花
 - 可直接回答 Question，并审批 `ONCE / ALWAYS / REJECT` Permission
 
@@ -128,4 +129,4 @@ cache read / (input + cache read + cache write)
 
 ## 自定义角色
 
-角色通过 `characters/character-framework.js` 注册，统一支持 `idle / run / resist / launch / tumble / land` 阶段。内置角色位于 `characters/roster.js`，新增角色的接口与示例见 [`characters/README.md`](characters/README.md)。注册顺序就是每轮结束后的切换顺序。
+角色通过 `characters/character-framework.js` 注册，统一支持 `idle / run / resist / launch / tumble / land` 阶段。落地后的 `disperse / assemble` 像素切换由框架统一处理，角色无需重复实现。内置角色位于 `characters/roster.js`，新增角色的接口与示例见 [`characters/README.md`](characters/README.md)。注册顺序就是每轮结束后的切换顺序。

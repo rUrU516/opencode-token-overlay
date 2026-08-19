@@ -425,6 +425,29 @@
       .overlay:not(.active):not(.burst) .token-character { filter:brightness(.84) saturate(.8); }
       .active .token-character { filter:brightness(1.12) saturate(1.12); }
       .critical .token-character { filter:brightness(1.55) saturate(1.25); }
+      .character-transition {
+        position: absolute;
+        z-index: 11;
+        inset: 0;
+        pointer-events: none;
+      }
+      .character-transition i {
+        position: absolute;
+        left: var(--transition-x,24px);
+        top: 0;
+        width: 3px;
+        height: 3px;
+        opacity: 0;
+        background: var(--energy-bright);
+        border: 1px solid #17151e;
+        box-shadow: 1px 1px var(--energy-deep);
+      }
+      .character-transition i:nth-child(3n+1) { width:4px; height:4px; background:var(--energy-flash); }
+      .character-transition i:nth-child(3n+2) { background:var(--energy-main); }
+      .character-transition i:nth-child(4n) { width:2px; height:2px; background:var(--energy-deep); }
+      .character-transition.active i {
+        animation: characterParticleSwitch var(--switch-duration,460ms) steps(12) var(--particle-delay,0ms) both;
+      }
       .runner-landing-dust {
         position: absolute;
         z-index: 11;
@@ -612,6 +635,14 @@
       @keyframes characterLaunch { to{transform:scaleX(.9) scaleY(1.08)} }
       @keyframes characterTumble { to{transform:rotate(12deg)} }
       @keyframes characterLand { 50%{transform:scaleX(1.18) scaleY(.76)} }
+      @keyframes characterParticleSwitch {
+        0% { opacity:0; transform:translate(var(--from-x),var(--from-y)) scale(.35) rotate(0); }
+        8% { opacity:1; }
+        44% { opacity:1; transform:translate(var(--burst-x),var(--burst-y)) scale(1.25) rotate(var(--particle-spin)); }
+        56% { opacity:1; transform:translate(var(--burst-x),var(--burst-y)) scale(1) rotate(var(--particle-spin)); }
+        91% { opacity:1; transform:translate(var(--to-x),var(--to-y)) scale(.9) rotate(0); }
+        100% { opacity:0; transform:translate(var(--to-x),var(--to-y)) scale(.2) rotate(0); }
+      }
       @keyframes runnerBodyRun { 50%{transform:translateY(-1px)} }
       @keyframes rabbitRun { 0%,100%{transform:translateY(2px) scaleY(.9)} 50%{transform:translateY(-7px) scaleY(1.06)} }
       @keyframes rabbitEars { 50%{transform:rotate(-16deg)} }
@@ -678,6 +709,11 @@
         <div class="legend" id="cache-hit">HIT --.----%</div>
         <div class="runner-wind" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
         <div class="token-character" aria-hidden="true"></div>
+        <div class="character-transition" aria-hidden="true">
+          <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+          <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+          <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+        </div>
         <div class="runner-landing-dust" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
         <div class="bar-shell">
           <div class="bar-track"><div class="bar-fill" id="bar"></div></div>
