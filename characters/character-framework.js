@@ -104,6 +104,8 @@
       this.burst = { startedAt, duration, landingX }
       this.outerPoseReset = false
       this.setPhase("resist")
+      // 跨圈时进度已进入下一轮左端；同步画出终点首帧，避免等 RAF 时闪现左端角色。
+      this.render(startedAt, true)
     }
 
     prepareParticles(oldDefinition, nextDefinition, duration) {
