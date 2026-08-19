@@ -3,7 +3,8 @@
 角色系统由两部分组成：
 
 - `character-framework.js`：注册表、生命周期、阶段切分和每圈轮换。
-- `roster.js`：当前内置的 10 个角色。
+- `roster.js`：首批 10 个角色。
+- `roster-wave2.js`：第二批 12 个角色。
 
 新增角色时创建 JavaScript 文件并调用：
 
