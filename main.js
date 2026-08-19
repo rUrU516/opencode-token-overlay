@@ -6,6 +6,14 @@ const path = require("node:path")
 let overlay
 let stopping = false
 
+function lifecycle(message, details) {
+  const suffix = details === undefined ? "" : ` ${typeof details === "string" ? details : JSON.stringify(details)}`
+  console.log(`[${new Date().toISOString()}] ${message}${suffix}`)
+}
+
+process.on("uncaughtExceptionMonitor", (error) => lifecycle("Uncaught exception", error?.stack ?? String(error)))
+process.on("exit", (code) => lifecycle("Main process exited", { code }))
+
 const OVERLAY_WIDTH = 268
 const OVERLAY_HEIGHT = 100
 const QUESTION_HEIGHTS = {
@@ -383,6 +391,7 @@ async function monitor() {
         retry = 1_000
         continue
       }
+      lifecycle("Monitor disconnected", { message: error.message, retry })
       send({ status: "disconnected", message: error.message })
       await new Promise((resolve) => setTimeout(resolve, retry))
       retry = Math.min(retry * 2, 15_000)
@@ -425,10 +434,16 @@ function createOverlay() {
   overlay.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
   overlay.loadFile(path.join(__dirname, "index.html"))
   overlay.once("ready-to-show", () => {
+    lifecycle("Overlay ready", { pid: process.pid })
     overlay.showInactive()
     void monitor()
   })
-  overlay.on("closed", () => { overlay = undefined })
+  overlay.on("unresponsive", () => lifecycle("Overlay became unresponsive"))
+  overlay.webContents.on("render-process-gone", (_event, details) => lifecycle("Renderer process gone", details))
+  overlay.on("closed", () => {
+    lifecycle("Overlay window closed")
+    overlay = undefined
+  })
 }
 
 ipcMain.on("question-panel-state", (_event, state) => {
@@ -491,5 +506,9 @@ app.whenReady().then(() => {
   createOverlay()
 })
 
-app.on("before-quit", () => { stopping = true })
+app.on("child-process-gone", (_event, details) => lifecycle("Child process gone", details))
+app.on("before-quit", () => {
+  lifecycle("Application quitting")
+  stopping = true
+})
 app.on("window-all-closed", () => app.quit())

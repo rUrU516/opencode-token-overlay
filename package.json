@@ -9,6 +9,13 @@
     "launch": "bash scripts/launch-macos.sh",
     "stop": "bash scripts/stop-macos.sh",
     "restart": "npm run stop && npm run launch",
+    "service:install": "bash scripts/service-macos.sh install",
+    "service:uninstall": "bash scripts/service-macos.sh uninstall",
+    "service:start": "bash scripts/service-macos.sh start",
+    "service:stop": "bash scripts/service-macos.sh stop",
+    "service:restart": "bash scripts/service-macos.sh restart",
+    "service:status": "bash scripts/service-macos.sh status",
+    "service:logs": "bash scripts/service-macos.sh logs",
     "check": "node --check main.js && node --check preload.js && node --check renderer.js"
   },
   "engines": {

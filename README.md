@@ -34,10 +34,38 @@
 git clone https://github.com/rUrU516/opencode-token-overlay.git
 cd opencode-token-overlay
 npm ci
+npm run service:install
+```
+
+`service:install` 会安装当前用户的 macOS LaunchAgent：登录时自动启动，进程意外退出后自动拉起，并将运行日志写入 `~/Library/Logs/OpenCodeTokenOverlay/`。
+
+常用管理命令：
+
+```bash
+npm run service:status
+npm run service:restart
+npm run service:stop
+npm run service:start
+npm run service:logs
+npm run service:uninstall
+```
+
+`service:stop` 只停止当前登录会话；下次登录仍会自动启动。`service:uninstall` 会停止并删除 LaunchAgent。托管模式下点击悬浮窗的 `×` 后，`launchd` 会自动将它重新拉起。
+
+## 手动运行
+
+不安装 LaunchAgent 时，可以独立后台启动：
+
+```bash
 npm run launch
 ```
 
-`npm run launch` 会将悬浮窗作为独立后台进程启动，终端可以直接关闭。重复执行不会创建第二个实例。
+重复执行不会创建第二个实例。停止或重启：
+
+```bash
+npm run stop
+npm run restart
+```
 
 前台调试运行：
 
@@ -45,14 +73,7 @@ npm run launch
 npm start
 ```
 
-将鼠标移到悬浮窗上，点击左下角出现的 `×` 可以退出。
-
-也可以在仓库目录执行：
-
-```bash
-npm run stop
-npm run restart
-```
+手动运行模式下，也可以将鼠标移到悬浮窗上，点击左下角出现的 `×` 退出。
 
 ## 更新
 
@@ -61,7 +82,7 @@ npm run restart
 ```bash
 git pull --ff-only
 npm ci
-npm run restart
+npm run service:restart
 ```
 
 ## 排查
@@ -83,6 +104,13 @@ opencode2 service restart
 
 ```bash
 npm run check
+```
+
+查看 LaunchAgent 状态与运行日志：
+
+```bash
+npm run service:status
+npm run service:logs
 ```
 
 ## 数据口径
